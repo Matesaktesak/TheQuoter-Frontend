@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:thequoter_flutter_frontend/api.dart';
+import 'package:thequoter_flutter_frontend/main.dart';
 
 class Login extends StatelessWidget {
   Login({Key? key}) : super(key: key);
@@ -20,9 +21,9 @@ class Login extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.max,
-          
           children: [
-            Expanded(child: Column(
+            Expanded(
+                child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -34,7 +35,9 @@ class Login extends StatelessWidget {
                   ),
                   controller: _usernameController,
                 ),
-                const SizedBox(height: 12.0,),
+                const SizedBox(
+                  height: 12.0,
+                ),
                 TextField(
                   decoration: const InputDecoration(
                     icon: Icon(Icons.key),
@@ -44,14 +47,18 @@ class Login extends StatelessWidget {
                   obscureText: true,
                   controller: _passwordController,
                 ),
-                const SizedBox(height: 18.0,),
+                const SizedBox(
+                  height: 18.0,
+                ),
                 ElevatedButton(
                   onPressed: () => login(context),
                   child: const Text("Login"),
                 ),
               ],
             )),
-            const SizedBox(height: 30.0,), // Spacer
+            const SizedBox(
+              height: 30.0,
+            ), // Spacer
             SizedBox(
               height: 30.0,
               child: TextButton(
@@ -70,7 +77,7 @@ class Login extends StatelessWidget {
 
   final QuoterAPI api = QuoterAPI("localhost:3000");
 
-  void register(BuildContext context){
+  void register(BuildContext context) {
     Navigator.pushNamed(context, "/register");
   }
 
@@ -79,7 +86,13 @@ class Login extends StatelessWidget {
     String password = _passwordController.text;
     debugPrint("username: $username, password: $password");
 
-    print("token retrieved: " + await api.login(username, password));
+    String token = await api.login(username, password);
+    setState() {
+      // TODO: set the login state of the main app widget
+    }
+    ;
+
+    print("token retrieved: " + token);
 
     Navigator.popAndPushNamed(context, "/");
   }

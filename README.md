@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # thequoter_flutter_frontend
 
 A new Flutter project.
@@ -14,3 +15,8 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+=======
+# TheQuoter Frontend
+A frontend app for TheQuoter backend written in Flutter.
+Implments a RESTful API to communicate with the backend. Login handling is yet to be completed.
+>>>>>>> 8e7a5ba (commit)
