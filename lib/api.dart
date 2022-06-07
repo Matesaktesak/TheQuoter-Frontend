@@ -1,40 +1,84 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:thequoter_flutter_frontend/models/person.dart';
+import 'package:thequoter_flutter_frontend/models/class.dart';
 import 'dart:async';
 
+import 'package:thequoter_flutter_frontend/models/quote.dart';
 
 class QuoterAPI {
   String serverAddress = "localhost:3000";
 
   QuoterAPI(this.serverAddress);
-  
 
   Future<String> login(String username, String pwd) async {
-    Uri url = Uri.parse(serverAddress + "/users/login");
-    http.Response res = await http.post(
-      url,
-      body: {
-        "username": username,
-        "password": pwd,
-      }
-    );
+    Uri url = Uri.parse("$serverAddress/users/login");
+    http.Response res = await http.post(url, body: {
+      "username": username,
+      "password": pwd,
+    });
 
-    if(res.statusCode == 201){
+    if (res.statusCode == 201) {
       return jsonDecode(res.body)["token"];
     } else {
       throw Exception(res.statusCode);
     }
   }
 
-  void getRandomQuote() async {
-    Uri url = Uri.parse(serverAddress + "/quotes");
+  Future<String> register(String username, String email, String pwd) async {
+    Uri url = Uri.parse("$serverAddress/users/register");
+    http.Response res = await http.post(url, body: {
+      "username": username,
+      "password": pwd,
+    });
 
+    if (res.statusCode == 201) {
+      return jsonDecode(res.body)["token"];
+    } else {
+      throw Exception(res.statusCode);
+    }
+  }
+
+  Future<Quote>? getQuote({String? id, String? author}) async {
+    // Prepare the query URI
+    Uri uri = Uri(
+      host: serverAddress,
+      path: "/quotes",
+      queryParameters: {
+        if(id != null) "id": id,
+        if(author != null) "author": author,
+      },
+    );
+
+    // Send a get request to the server
     http.Response res = await http.get(
-      url,
+      uri,
       headers: {
         "authentication": "token goes here", // TODO: Add the damn token
       },
     );
+
+    Map<String, dynamic> data = jsonDecode(res.body);
+
+    if (res.statusCode == 200) {  // If the request was successful
+      return Quote(
+        data["_id"],
+        data["author"],
+        data["text"],
+        data["context"],
+        data["note"],
+        Person(
+          data["originator"]["_id"],
+          data["originator"]["name"],
+          data["originator"]["type"]
+        ),
+        Class(
+          data["class"]["_id"],
+          data["class"]["name"]
+        ),
+    );
+    } else {  // Else throw an exception
+      throw Exception(res.statusCode);
+    }
   }
 }
