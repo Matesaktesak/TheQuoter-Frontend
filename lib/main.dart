@@ -8,7 +8,7 @@ import 'package:thequoter_flutter_frontend/register.dart';
 import 'package:thequoter_flutter_frontend/login.dart';
 import 'package:thequoter_flutter_frontend/main_menu.dart';
 
-QuoterAPI api = QuoterAPI("localhost");
+QuoterAPI api = QuoterAPI("localhost", 8080);
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(TheQuoter());
