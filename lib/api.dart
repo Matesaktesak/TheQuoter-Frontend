@@ -46,10 +46,15 @@ class QuoterAPI {
   }
 
   // Register request
-  Future<String> register(
-      String username, String email, String pwd, Class clas) async {
-    Uri url = Uri(
-        scheme: "http", port: serverPort, host: serverAddress, path: "/users");
+  Future<String?> register(String username, String email, String pwd, Class clas) async {
+      Uri url = Uri(
+      scheme: "http",
+      port: serverPort,
+      host: serverAddress, 
+      path: "/users"
+    );
+
+    print("Sending register request");
 
     http.Response res = await http.post(url, body: {
       "username": username,
@@ -62,6 +67,8 @@ class QuoterAPI {
       print("Registered sucessfully!");
       return jsonDecode(res.body)["token"];
     } else {
+      print("Registration failed");
+      return null;
       throw Exception("Registration failed(${res.statusCode})");
     }
   }

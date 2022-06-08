@@ -137,7 +137,6 @@ class _LoginState extends State<Login> {
   }
 
   final TextEditingController _usernameController = TextEditingController();
-
   final TextEditingController _passwordController = TextEditingController();
 
   void register(BuildContext context) {
