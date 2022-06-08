@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 class QuoteDisplay extends StatelessWidget {
+  Map<String, String> appData;
+
   String quote = "";
   String author = "";
 
-  QuoteDisplay({String? quote, String? author, Key? key}) : super(key: key){
+  QuoteDisplay(this.appData, {String? quote, String? author, Key? key}) : super(key: key){
     this.quote = quote ?? "No quote here ¯\\_(ツ)_/¯";
     this.author = author?? "No author";
   }

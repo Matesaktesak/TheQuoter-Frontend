@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:thequoter_flutter_frontend/api.dart';
 
 import 'package:thequoter_flutter_frontend/catalog.dart';
 import 'package:thequoter_flutter_frontend/quote_display.dart';
@@ -7,16 +8,14 @@ import 'package:thequoter_flutter_frontend/register.dart';
 import 'package:thequoter_flutter_frontend/login.dart';
 import 'package:thequoter_flutter_frontend/main_menu.dart';
 
-final mainApp = GlobalKey<_TheQuoterState>();
+QuoterAPI api = QuoterAPI("localhost");
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(TheQuoter(key: mainApp));
+  runApp(TheQuoter());
 }
 
 class TheQuoter extends StatefulWidget {
-  String username = "";
-  String userId = "";
-  String jwt = "";
+  Map<String, String> appData = {"username": "", "jwt": ""};
 
   TheQuoter({Key? key}) : super(key: key);
 
@@ -54,11 +53,11 @@ class _TheQuoterState extends State<TheQuoter> {
       title: "Hláškomat",
       theme: widget.theme,
       routes: {
-        "/": (context) => MainMenu(),
-        "/login": (context) => Login(),
-        "/register": (context) => Register(),
-        "/catalog": (context) => Catalog(),
-        "/quoteDisplay": (context) => QuoteDisplay(),
+        "/": (context) => MainMenu(widget.appData),
+        "/login": (context) => Login(widget.appData),
+        "/register": (context) => Register(widget.appData),
+        "/catalog": (context) => Catalog(widget.appData),
+        "/quoteDisplay": (context) => QuoteDisplay(widget.appData),
       },
       initialRoute: "/login",
     );

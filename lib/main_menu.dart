@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 
-class MainMenu extends StatelessWidget{
-  MainMenu({Key? key}) : super(key: key);
+class MainMenu extends StatelessWidget {
+  Map<String, String> appData;
+  MainMenu(this.appData, {Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-
-      ),
+      appBar: AppBar(),
       drawer: Drawer(
         elevation: 8.0,
         child: Column(
           children: [
-            TextButton(onPressed: () => logout(context), child: const Text("Logout"))
+            TextButton(
+                onPressed: () => logout(context), child: const Text("Logout"))
           ],
         ),
       ),
@@ -22,9 +22,7 @@ class MainMenu extends StatelessWidget{
           Expanded(
             flex: 2,
             child: ElevatedButton(
-              onPressed: () => "",
-              child: const Text("Quote NOW!")
-            ),
+                onPressed: () => "", child: const Text("Quote NOW!")),
           )
         ],
       ),
@@ -32,8 +30,7 @@ class MainMenu extends StatelessWidget{
     );
   }
 
-  void logout(BuildContext context){
-
+  void logout(BuildContext context) {
     Navigator.of(context).pushReplacementNamed("/login");
   }
 }

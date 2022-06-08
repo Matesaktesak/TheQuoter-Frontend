@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class Catalog extends StatelessWidget {
-  Catalog({Key? key}) : super(key: key);
+  Map<String, String> appData;
+  Catalog(this.appData, {Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

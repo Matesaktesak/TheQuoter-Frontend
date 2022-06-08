@@ -3,7 +3,9 @@ import 'package:thequoter_flutter_frontend/api.dart';
 import 'package:thequoter_flutter_frontend/main.dart';
 
 class Login extends StatelessWidget {
-  Login({Key? key}) : super(key: key);
+  Map<String, String> appData;
+
+  Login(this.appData, {Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +53,10 @@ class Login extends StatelessWidget {
                   height: 18.0,
                 ),
                 ElevatedButton(
-                  onPressed: () => login(context),
+                  onPressed: () {
+                    login(appData);
+                    Navigator.popAndPushNamed(context, "/");
+                  },
                   child: const Text("Login"),
                 ),
               ],
@@ -75,25 +80,19 @@ class Login extends StatelessWidget {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  final QuoterAPI api = QuoterAPI("localhost:3000");
-
   void register(BuildContext context) {
     Navigator.pushNamed(context, "/register");
   }
 
-  void login(BuildContext context) async {
+  void login(appData) async {
     String username = _usernameController.text;
     String password = _passwordController.text;
     debugPrint("username: $username, password: $password");
 
     String token = await api.login(username, password);
-    setState() {
-      // TODO: set the login state of the main app widget
-    }
-    ;
+    appData.appData["username"] = username;
+    appData.appData["jwt"] = token;
 
-    print("token retrieved: " + token);
-
-    Navigator.popAndPushNamed(context, "/");
+    debugPrint("token retrieved: $token");
   }
 }
