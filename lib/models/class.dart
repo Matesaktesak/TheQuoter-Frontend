@@ -1,6 +1,13 @@
 class Class {
-  final String _id;
-  final String name;
+  late String id;
+  late String name;
 
-  Class(this._id, this.name);
+  Class({required String id, String? name}){
+    this.id = id;
+    this.name = name ?? "No name class";
+  }
+
+  static Class fromJson(json) {
+    return Class(id: json["_id"], name: json["name"]);
+  }
 }
