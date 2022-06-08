@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:thequoter_flutter_frontend/main.dart';
 
 class Register extends StatelessWidget {
+  Map<String, String> appData;
   final _registerFormKey = GlobalKey<FormState>();
   
-  Register({Key? key}) : super(key: key);
+  Register(this.appData, {Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +75,12 @@ class Register extends StatelessWidget {
                 height: 18.0,
               ),
               ElevatedButton(
-                onPressed: register,
+                onPressed: () {
+                  //setState() {
+                    register(appData);
+                  //}
+                  //Navigator.pop(context);
+                },
                 child: const Text("Register"),
               ),
             ],
@@ -88,10 +95,21 @@ class Register extends StatelessWidget {
   TextEditingController _passwordController = TextEditingController();
   TextEditingController _passwordController2 = TextEditingController();
 
-  void register() {
+  void register(appData) async {
+    print("Register clicked!");
     // TODO: Register functionality
     validate();
-    print("Register clicked!");
+
+    String username = _usernameController.text;
+    String email = _emailController.text;
+    String password = _passwordController.text;
+
+    String token = await api.register(username, email, password);
+
+    appData["username"] = username;
+    appData["jwt"] = token;
+
+    print("username: $username, email: $email, password: $password");
   }
 
   void validate() {
