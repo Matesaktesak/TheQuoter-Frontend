@@ -15,6 +15,9 @@ class Register extends StatefulWidget {
 class _RegisterState extends State<Register> {
   final _registerFormKey = GlobalKey<FormState>();
 
+  Future<String?>? futureToken;
+  bool error = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,6 +71,7 @@ class _RegisterState extends State<Register> {
                                 });
                               }
                             },
+                            //validator: (String? value) => value == null ? "Please select a class" : null,
                           );
                         } else {
                           // If the future is still loading
@@ -89,9 +93,7 @@ class _RegisterState extends State<Register> {
                 ),
                 controller: _emailController,
                 validator: (String? value) {
-                  return value!.contains("@")
-                      ? null
-                      : "Email address has to contain a '@'";
+                  return value!.contains("@") ? null : "Email address has to contain a '@'";
                 },
               ),
               const SizedBox(
@@ -121,15 +123,54 @@ class _RegisterState extends State<Register> {
               const SizedBox(
                 height: 18.0,
               ),
-              ElevatedButton(
-                onPressed: () {
-                  //setState() {
-                  if(widget._classId != null) register(widget.appData, Class(id: widget._classId!));
-                  //}
-                  //Navigator.pop(context);
+              FutureBuilder(
+                future: futureToken,
+                builder: (context, AsyncSnapshot<String?> snapshot) {
+                  if (snapshot.connectionState == ConnectionState.none) { // If the API request has not been made yet
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton( // Show the register button
+                          onPressed: () {
+                            print("Register button pressed");
+                            setState(() {
+                              if(validate() && widget._classId != null) futureToken = api.register(_usernameController.text, _emailController.text, _passwordController.text, Class(id: widget._classId!));
+                            });
+                          },
+                          child: const Text("Register"),
+                        ),
+                        if (error) const Padding( // Show error message
+                          padding: EdgeInsets.only(left: 8.0),
+                          child: Text("Registration failed"),
+                        ), // Show an error message
+                      ],
+                    );
+                  } else if (snapshot.connectionState == ConnectionState.waiting) { // If the API request is still loading
+                    return const CircularProgressIndicator(); // Show a loading indicator
+                  } else if (snapshot.connectionState == ConnectionState.done) { // If the API request has finnished
+                    if (snapshot.data != "" && snapshot.data != null) {         // And a token has been returned
+                      print("snapshot.data: ${snapshot.data}");
+                      widget.appData["username"] = _usernameController.text;      // Save the username
+                      widget.appData["jwt"] = snapshot.data!;                     // Save the token
+                      Future.microtask(() => Navigator.pushReplacementNamed(context, "/")); // Go to the main page
+                    } else { // If the token is invalid
+                      Future.microtask(() => setState(() {
+                        futureToken = null; // Reset the future token
+                        error = true; // Show an error message
+                      }));
+                    }
+                  }
+
+                  if (snapshot.hasError) {
+                    return Text(
+                      "Error: ${snapshot.error}",
+                      style: Theme.of(context).textTheme.headline6,
+                    );
+                  }
+
+                  return Container();
                 },
-                child: const Text("Register"),
-              ),
+              )
             ],
           ),
         ),
@@ -142,7 +183,7 @@ class _RegisterState extends State<Register> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _passwordController2 = TextEditingController();
 
-  void register(appData, Class clas) async {
+/*   void register(appData, Class clas) async {
     print("Register clicked!");
     // TODO: Register functionality
     if (!validate()) return;
@@ -158,7 +199,7 @@ class _RegisterState extends State<Register> {
 
     print("username: $username, email: $email, password: $password");
   }
-
+ */
   bool validate() {
     return _registerFormKey.currentState!.validate();
 
