@@ -8,59 +8,91 @@ import 'package:thequoter_flutter_frontend/models/quote.dart';
 
 class QuoterAPI {
   String serverAddress;
+  int serverPort;
 
-  QuoterAPI(this.serverAddress) {
+  QuoterAPI(this.serverAddress, this.serverPort) {
     print("QuoterAPI created");
     print(() async => await echo("The connetion to the server is working"));
   }
 
   Future<String> echo(String message) async {
     final response = await http.post(
-      Uri(
-        port: 8080,
-        host: serverAddress,
-        path: "/echo"
-      ),
-      body: {"message": message}
-    );
+        Uri(port: serverPort, host: serverAddress, path: "/echo"),
+        body: {"message": message});
     return jsonDecode(response.body)["message"];
   }
 
-  Future<String> login(String username, String pwd) async {
-    Uri url = Uri(host: serverAddress, path: "/users/login");
+  // Login request
+  Future<String?> login(String username, String pwd) async {
+    Uri uri = Uri(
+        scheme: "http",
+        port: serverPort,
+        host: serverAddress,
+        path: "/users/login");
 
-    http.Response res = await http.post(url, body: {
+    http.Response res = await http.post(uri, body: {
       "username": username,
       "password": pwd,
     });
 
-    if (res.statusCode == 201) {
+    if (res.statusCode == 200) {
+      print("Login sucessfull");
       return jsonDecode(res.body)["token"];
     } else {
-      throw Exception(res.statusCode);
+      print("Login failed");
+      return null;
+      throw Exception("Login failed(${res.statusCode})");
     }
   }
 
-  Future<String> register(String username, String email, String pwd) async {
+  // Register request
+  Future<String> register(
+      String username, String email, String pwd, Class clas) async {
     Uri url = Uri(
-      port: 8080,
-      host: serverAddress,
-      path: "/users/register"
-    );
+        scheme: "http", port: serverPort, host: serverAddress, path: "/users");
 
     http.Response res = await http.post(url, body: {
       "username": username,
       "password": pwd,
       "email": email,
+      "class": clas.id // TODO: Implement class
     });
 
     if (res.statusCode == 201) {
+      print("Registered sucessfully!");
       return jsonDecode(res.body)["token"];
     } else {
-      throw Exception(res.statusCode);
+      throw Exception("Registration failed(${res.statusCode})");
     }
   }
 
+  // Get all classes
+  Future<List<Class>>? getClasses() async {
+    Uri url = Uri(
+        scheme: "http",
+        port: serverPort,
+        host: serverAddress,
+        path: "/classes");
+
+    http.Response res = await http.get(url);
+
+    if (res.statusCode == 200) {
+      print("Classes fetched:");
+
+      List<Class> fetched = (jsonDecode(res.body)["classes"] as List)
+          .map<Class>((e) => Class.fromJson(e))
+          .toList();
+
+      fetched.sort((a, b) => a.name.compareTo(b.name));
+
+      print(fetched.map((e) => e.name));
+      return fetched;
+    } else {
+      throw Exception("Fetching classes failed(${res.statusCode})");
+    }
+  }
+
+  // Get quotes by query
   Future<Quote>? getQuote(String token, {String? id, String? author}) async {
     // Prepare the query URI
     Uri uri = Uri(
@@ -84,19 +116,10 @@ class QuoterAPI {
 
     if (res.statusCode == 200) {
       // If the request was successful
-      return Quote(
-        data["_id"],
-        data["author"],
-        data["text"],
-        data["context"],
-        data["note"],
-        Person(data["originator"]["_id"], data["originator"]["name"],
-            data["originator"]["type"]),
-        Class(data["class"]["_id"], data["class"]["name"]),
-      );
+      return Quote.fromJson(data);
     } else {
       // Else throw an exception
-      throw Exception(res.statusCode);
+      throw Exception("Quote query error(${res.statusCode})");
     }
   }
 
@@ -122,7 +145,7 @@ class QuoterAPI {
     if (res.statusCode == 201) {
       return jsonDecode(res.body)["_id"];
     } else {
-      throw Exception("Quote creation error");
+      throw Exception("Quote creation error(${res.statusCode})");
     }
   }
 }
