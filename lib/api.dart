@@ -39,14 +39,14 @@ class QuoterAPI {
     }
   }
 
-  Future<Quote>? getQuote({String? id, String? author}) async {
+  Future<Quote>? getQuote(String token, {String? id, String? author}) async {
     // Prepare the query URI
     Uri uri = Uri(
       host: serverAddress,
       path: "/quotes",
       queryParameters: {
-        if(id != null) "id": id,
-        if(author != null) "author": author,
+        if (id != null) "id": id,
+        if (author != null) "author": author,
       },
     );
 
@@ -54,31 +54,53 @@ class QuoterAPI {
     http.Response res = await http.get(
       uri,
       headers: {
-        "authentication": "token goes here", // TODO: Add the damn token
+        "authentication": token,
       },
     );
 
     Map<String, dynamic> data = jsonDecode(res.body);
 
-    if (res.statusCode == 200) {  // If the request was successful
+    if (res.statusCode == 200) {
+      // If the request was successful
       return Quote(
         data["_id"],
         data["author"],
         data["text"],
         data["context"],
         data["note"],
-        Person(
-          data["originator"]["_id"],
-          data["originator"]["name"],
-          data["originator"]["type"]
-        ),
-        Class(
-          data["class"]["_id"],
-          data["class"]["name"]
-        ),
-    );
-    } else {  // Else throw an exception
+        Person(data["originator"]["_id"], data["originator"]["name"],
+            data["originator"]["type"]),
+        Class(data["class"]["_id"], data["class"]["name"]),
+      );
+    } else {
+      // Else throw an exception
       throw Exception(res.statusCode);
+    }
+  }
+
+  // Create a new quote
+  Future<String> createQuote(Quote q,
+      {required Person author,
+      required String text,
+      String? context,
+      String? note,
+      required Person originator,
+      Class? clas}) async {
+    Uri uri = Uri(host: serverAddress, path: "/quotes");
+
+    http.Response res = await http.post(uri, body: {
+      "author": author,
+      "text": text,
+      "context": context ?? "",
+      "note": note ?? "",
+      "originator": originator,
+      "class": clas ?? ""
+    });
+
+    if (res.statusCode == 201) {
+      return jsonDecode(res.body)["_id"];
+    } else {
+      throw Exception("Quote creation error");
     }
   }
 }
