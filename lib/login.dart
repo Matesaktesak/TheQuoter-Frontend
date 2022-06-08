@@ -2,13 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:thequoter_flutter_frontend/api.dart';
 import 'package:thequoter_flutter_frontend/main.dart';
 
-class Login extends StatelessWidget {
+class Login extends StatefulWidget {
   Map<String, String> appData;
 
   Login(this.appData, {Key? key}) : super(key: key);
 
   @override
+  State<Login> createState() => _LoginState();
+}
+
+class _LoginState extends State<Login> {
+  final _loginFormKey = GlobalKey<FormState>();
+
+  Future<String?>? futureToken;
+  bool error = false;
+
+  @override
   Widget build(BuildContext context) {
+    widget.appData["jwt"] = "";
+
+    _usernameController.text = widget.appData["username"] ?? "";
+
     return Scaffold(
       primary: true,
       appBar: AppBar(
@@ -25,42 +39,87 @@ class Login extends StatelessWidget {
           mainAxisSize: MainAxisSize.max,
           children: [
             Expanded(
-                child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                TextFormField(
-                  decoration: const InputDecoration(
-                    icon: Icon(Icons.person),
-                    hintText: "Username",
-                    helperText: "Enter your email or user name",
-                  ),
-                  controller: _usernameController,
-                ),
-                const SizedBox(
-                  height: 12.0,
-                ),
-                TextField(
-                  decoration: const InputDecoration(
-                    icon: Icon(Icons.key),
-                    hintText: "Password",
-                    helperText: "Enter your password",
-                  ),
-                  obscureText: true,
-                  controller: _passwordController,
-                ),
-                const SizedBox(
-                  height: 18.0,
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    login(appData);
-                    Navigator.popAndPushNamed(context, "/");
-                  },
-                  child: const Text("Login"),
-                ),
-              ],
-            )),
+              child: Form(
+                  key: _loginFormKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextFormField(
+                        decoration: const InputDecoration(
+                          icon: Icon(Icons.person),
+                          hintText: "Username",
+                          helperText: "Enter your email or user name",
+                        ),
+                        controller: _usernameController,
+                      ),
+                      const SizedBox(
+                        height: 12.0,
+                      ),
+                      TextFormField(
+                        decoration: const InputDecoration(
+                          icon: Icon(Icons.key),
+                          hintText: "Password",
+                          helperText: "Enter your password",
+                        ),
+                        obscureText: true,
+                        controller: _passwordController,
+                      ),
+                      const SizedBox(
+                        height: 18.0,
+                      ),
+                      FutureBuilder(
+                        future: futureToken,
+                        builder: (context, AsyncSnapshot<String?> snapshot) {
+                          if (snapshot.connectionState == ConnectionState.none) { // If the API request has not been made yet
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ElevatedButton(
+                                  // Show the login button
+                                  onPressed: () {
+                                    setState(() {
+                                      futureToken = api.login(
+                                          _usernameController.text,
+                                          _passwordController.text);
+                                    });
+                                  },
+                                  child: const Text("Login"),
+                                ),
+                                if (error) const Padding(
+                                  padding: EdgeInsets.only(left: 8.0),
+                                  child: Text("Invalid username or password"),
+                                ), // Show an error message
+                              ],
+                            );
+                          } else if (snapshot.connectionState == ConnectionState.waiting) { // If the API request is still loading
+                            return const CircularProgressIndicator(); // Show a loading indicator
+                          } else if (snapshot.connectionState == ConnectionState.done) { // If the API request has finnished
+                            if (snapshot.data != "" && snapshot.data != null) { // And a token has been returned
+                              widget.appData["username"] = _usernameController.text; // Save the username
+                              widget.appData["jwt"] = snapshot.data!; // Save the token
+                              Future.microtask(() => Navigator.pushReplacementNamed( context, "/")); // Go to the main page
+                            } else { // If the token is invalid
+                              Future.microtask(() => setState(() {
+                                futureToken = null; // Reset the future token
+                                error = true; // Show an error message
+                              }));
+                            }
+                          }
+
+                          if (snapshot.hasError) {
+                            return Text(
+                              "Error: ${snapshot.error}",
+                              style: Theme.of(context).textTheme.headline6,
+                            );
+                          }
+
+                          return Container();
+                        },
+                      )
+                    ],
+                  )),
+            ),
             const SizedBox(
               height: 30.0,
             ), // Spacer
@@ -78,21 +137,10 @@ class Login extends StatelessWidget {
   }
 
   final TextEditingController _usernameController = TextEditingController();
+
   final TextEditingController _passwordController = TextEditingController();
 
   void register(BuildContext context) {
     Navigator.pushNamed(context, "/register");
-  }
-
-  void login(appData) async {
-    String username = _usernameController.text;
-    String password = _passwordController.text;
-    debugPrint("username: $username, password: $password");
-
-    String token = await api.login(username, password);
-    appData.appData["username"] = username;
-    appData.appData["jwt"] = token;
-
-    debugPrint("token retrieved: $token");
   }
 }
