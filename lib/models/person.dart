@@ -3,14 +3,14 @@ class Person {
     final String name;
     final String type;
 
-    Person(this.id, this.name, this.type);
+    Person({required this.id, required this.name, required this.type});
 
     // From a JSON object
     static Person fromJson(Map<String, dynamic> json) {
         return Person(
-            json["_id"],
-            json["name"],
-            json["type"],
+            id: json["_id"],
+            name: json["name"],
+            type: json["type"],
         );
     }
 }

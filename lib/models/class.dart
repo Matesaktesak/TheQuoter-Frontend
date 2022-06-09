@@ -2,12 +2,11 @@ class Class {
   late String id;
   late String name;
 
-  Class({required String id, String? name}){
-    this.id = id;
-    this.name = name ?? "No name class";
-  }
+  Class({required this.id, String? name}): name = name ?? id;
 
   static Class fromJson(json) {
+    //print("Creating a Class from $json");
+
     return Class(id: json["_id"], name: json["name"]);
   }
 }
