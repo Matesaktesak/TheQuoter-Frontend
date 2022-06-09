@@ -42,7 +42,8 @@ class TheQuoter extends StatefulWidget {
     textTheme: const TextTheme(
         headline1: TextStyle(fontSize: 72.0),
         caption: TextStyle(fontStyle: FontStyle.italic), // Quote text
-        subtitle1: TextStyle(fontSize: 11.0)),
+        subtitle1: TextStyle(fontSize: 11.0)
+      ),
   );
 }
 
@@ -57,7 +58,7 @@ class _TheQuoterState extends State<TheQuoter> {
         "/login": (context) => Login(widget.appData),
         "/register": (context) => Register(widget.appData),
         "/catalog": (context) => Catalog(widget.appData),
-        "/quoteDisplay": (context) => QuoteDisplay(widget.appData),
+        //"/quoteDisplay": (context) => QuoteDisplay(),
       },
       initialRoute: "/login",
     );
