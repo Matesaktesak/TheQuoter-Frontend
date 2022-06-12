@@ -12,36 +12,48 @@ class QuoterAPI {
 
   QuoterAPI(this.serverAddress, this.serverPort) {
     print("QuoterAPI created");
-    print(() async => await echo("The connetion to the server is working"));
+    echo("The connetion to the server is working").then((value) => print(value));
   }
 
   Future<String> echo(String message) async {
-    final response = await http.post(
-        Uri(port: serverPort, host: serverAddress, path: "/echo"),
-        body: {"message": message});
+    print("Echoing $message");
+    final response = await http.get(Uri(
+      scheme: "http",
+      port: serverPort,
+      host: serverAddress,
+      path: "/echo",
+      queryParameters: {"message": message},
+    ));
+    if(response.body == "Not Found") return "Echo failed - the server is probably running in production enviroment and doesn't inlude /echo";
     return jsonDecode(response.body)["message"];
   }
 
   // Login request
   Future<String?> login(String username, String pwd) async {
-    Uri uri = Uri(
-        scheme: "http",
-        port: serverPort,
-        host: serverAddress,
-        path: "/users/login");
+    try{
+      Uri uri = Uri(
+          scheme: "http",
+          port: serverPort,
+          host: serverAddress,
+          path: "/users/login");
 
-    http.Response res = await http.post(uri, body: {
-      "username": username,
-      "password": pwd,
-    });
+      http.Response res = await http.post(uri, body: {
+        "username": username,
+        "password": pwd,
+      });
 
-    if (res.statusCode == 200) {
-      print("Login sucessfull");
-      return jsonDecode(res.body)["token"];
-    } else {
+      if (res.statusCode == 200) {
+        print("Login sucessfull");
+        print("Token: " + jsonDecode(res.body)["token"]);
+        return jsonDecode(res.body)["token"];
+      } else {
+        print("Login failed");
+        return null;
+        throw Exception("Login failed(${res.statusCode})");
+      }
+    } catch (e) {
       print("Login failed");
       return null;
-      throw Exception("Login failed(${res.statusCode})");
     }
   }
 
@@ -84,7 +96,7 @@ class QuoterAPI {
     http.Response res = await http.get(url);
 
     if (res.statusCode == 200) {
-      print("Classes fetched:");
+      print("Classes fetched");
 
       List<Class> fetched = (jsonDecode(res.body)["classes"] as List)
           .map<Class>((e) => Class.fromJson(e))
@@ -92,22 +104,57 @@ class QuoterAPI {
 
       fetched.sort((a, b) => a.name.compareTo(b.name));
 
-      print(fetched.map((e) => e.name));
+      //print(fetched.map((e) => e.name));
       return fetched;
     } else {
       throw Exception("Fetching classes failed(${res.statusCode})");
     }
   }
 
+  // Get all classes
+  Future<List<Person>>? getTeachers() async {
+    Uri url = Uri(
+        scheme: "http",
+        port: serverPort,
+        host: serverAddress,
+        path: "/people",
+        queryParameters: {
+          "type": "teacher",
+        }
+      );
+
+    http.Response res = await http.get(url);
+
+    if (res.statusCode == 200) {
+      print("Teachers fetched");
+
+      List<Person> fetched = (jsonDecode(res.body)["people"] as List)
+          .map<Person>((e) => Person.fromJson(e))
+          .toList();
+
+      fetched.sort((a, b) => a.name.compareTo(b.name));
+
+      //print(fetched.map((e) => e.name));
+      return fetched;
+    } else {
+      throw Exception("Fetching teachers failed(${res.statusCode})");
+    }
+  }
+
+
   // Get quotes by query
-  Future<Quote>? getQuote(String token, {String? id, String? author}) async {
+  Future<List<Quote>?>? getQuote(String token, {String? text, Person? originator, Class? clas}) async {
     // Prepare the query URI
     Uri uri = Uri(
+      scheme: "http",
+      port: serverPort,
       host: serverAddress,
       path: "/quotes",
       queryParameters: {
-        if (id != null) "id": id,
-        if (author != null) "author": author,
+        if(text != null) "text": text,
+        if(originator != null) "originator": originator.id,
+        if(clas != null) "class": clas.id,
+        "state": "public",
       },
     );
 
@@ -115,39 +162,88 @@ class QuoterAPI {
     http.Response res = await http.get(
       uri,
       headers: {
-        "authentication": token,
+        "Authorization": "Bearer $token",
       },
     );
 
-    Map<String, dynamic> data = jsonDecode(res.body);
-
     if (res.statusCode == 200) {
       // If the request was successful
-      return Quote.fromJson(data);
+      print("Quotes fetched");
+
+      List<Quote>? fetched = (jsonDecode(res.body)["quotes"] as List)
+          .map<Quote>((e) => Quote.fromJson(e))
+          .toList();
+
+      //print("${fetched.map((e) => e.id)}: ${fetched.map((e) => e.text)}");
+
+      return fetched;
     } else {
       // Else throw an exception
       throw Exception("Quote query error(${res.statusCode})");
     }
   }
 
-  // Create a new quote
-  Future<String> createQuote(Quote q,
-      {required Person author,
-      required String text,
-      String? context,
-      String? note,
-      required Person originator,
-      Class? clas}) async {
-    Uri uri = Uri(host: serverAddress, path: "/quotes");
+  // Get a random quote
+  Future<Quote>? getRandomQuote(String token) async {
+    Uri uri = Uri(
+      scheme: "http",
+      port: serverPort,
+      host: serverAddress,
+      path: "/quotes/random",
+    );
 
-    http.Response res = await http.post(uri, body: {
-      "author": author,
-      "text": text,
-      "context": context ?? "",
-      "note": note ?? "",
-      "originator": originator,
-      "class": clas ?? ""
-    });
+    http.Response res = await http.get(
+      uri,
+      headers: {
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (res.statusCode == 200) {
+      // If the request was successful
+      print("Random quote fetched");
+
+      Quote fetched = Quote.fromJson(jsonDecode(res.body));
+
+      return fetched;
+    } else {
+      // Else throw an exception
+      throw Exception("Random quote query error(${res.statusCode})");
+    }
+  }
+
+  Future<List<Quote>?>? getQuotesCatalog(String token) async {
+    return getQuote(token, ); // TODO: Implement proper catalog fetching
+  }
+
+  // Create a new quote
+  Future<String> createQuote(String token,{
+    required String text,
+    String? context,
+    String? note,
+    required Person originator,
+    Class? clas
+  }) async {
+    Uri uri = Uri(
+      scheme: "http",
+      port: serverPort,
+      host: serverAddress,
+      path: "/quotes"
+    );
+
+    http.Response res = await http.post(
+      uri,
+      headers: {
+        "Authorization": "Bearer $token",
+      },
+      body: {
+        "text": text,
+        if(context != null) "context": context,
+        if(note != null) "note": note,
+        "originator": originator.id,
+        if(clas != null) "class": clas.id
+      }
+    );
 
     if (res.statusCode == 201) {
       return jsonDecode(res.body)["_id"];
