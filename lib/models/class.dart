@@ -9,4 +9,10 @@ class Class {
 
     return Class(id: json["_id"], name: json["name"]);
   }
+
+  @override
+  String toString() {
+    // TODO: implement toString
+    return "Class[id: $id, name: $name]";
+  }
 }
