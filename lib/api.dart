@@ -12,13 +12,18 @@ class QuoterAPI {
 
   QuoterAPI(this.serverAddress, this.serverPort) {
     print("QuoterAPI created");
-    print(() async => await echo("The connetion to the server is working"));
+    echo("The connetion to the server is working").then((value) => print(value));
   }
 
   Future<String> echo(String message) async {
-    final response = await http.post(
-        Uri(port: serverPort, host: serverAddress, path: "/echo"),
-        body: {"message": message});
+    print("Echoing $message");
+    final response = await http.get(Uri(
+      scheme: "http",
+      port: serverPort,
+      host: serverAddress,
+      path: "/echo",
+      queryParameters: {"message": message},
+    ));
     return jsonDecode(response.body)["message"];
   }
 
