@@ -24,6 +24,7 @@ class QuoterAPI {
       path: "/echo",
       queryParameters: {"message": message},
     ));
+    if(response.body == "Not Found") return "Echo failed - the server is probably running in production enviroment and doesn't inlude /echo";
     return jsonDecode(response.body)["message"];
   }
 
@@ -110,6 +111,37 @@ class QuoterAPI {
     }
   }
 
+  // Get all classes
+  Future<List<Person>>? getTeachers() async {
+    Uri url = Uri(
+        scheme: "http",
+        port: serverPort,
+        host: serverAddress,
+        path: "/people",
+        queryParameters: {
+          "type": "teacher",
+        }
+      );
+
+    http.Response res = await http.get(url);
+
+    if (res.statusCode == 200) {
+      print("Teachers fetched");
+
+      List<Person> fetched = (jsonDecode(res.body)["people"] as List)
+          .map<Person>((e) => Person.fromJson(e))
+          .toList();
+
+      fetched.sort((a, b) => a.name.compareTo(b.name));
+
+      //print(fetched.map((e) => e.name));
+      return fetched;
+    } else {
+      throw Exception("Fetching teachers failed(${res.statusCode})");
+    }
+  }
+
+
   // Get quotes by query
   Future<List<Quote>?>? getQuote(String token, {String? text, Person? originator, Class? clas}) async {
     // Prepare the query URI
@@ -185,23 +217,33 @@ class QuoterAPI {
   }
 
   // Create a new quote
-  Future<String> createQuote(Quote q,
-      {required Person author,
-      required String text,
-      String? context,
-      String? note,
-      required Person originator,
-      Class? clas}) async {
-    Uri uri = Uri(host: serverAddress, path: "/quotes");
+  Future<String> createQuote(String token,{
+    required String text,
+    String? context,
+    String? note,
+    required Person originator,
+    Class? clas
+  }) async {
+    Uri uri = Uri(
+      scheme: "http",
+      port: serverPort,
+      host: serverAddress,
+      path: "/quotes"
+    );
 
-    http.Response res = await http.post(uri, body: {
-      "author": author,
-      "text": text,
-      "context": context ?? "",
-      "note": note ?? "",
-      "originator": originator,
-      "class": clas ?? ""
-    });
+    http.Response res = await http.post(
+      uri,
+      headers: {
+        "Authorization": "Bearer $token",
+      },
+      body: {
+        "text": text,
+        if(context != null) "context": context,
+        if(note != null) "note": note,
+        "originator": originator.id,
+        if(clas != null) "class": clas.id
+      }
+    );
 
     if (res.statusCode == 201) {
       return jsonDecode(res.body)["_id"];
