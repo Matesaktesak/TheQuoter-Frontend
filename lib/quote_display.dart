@@ -39,21 +39,21 @@ class QuoteDisplay extends StatelessWidget {
                         topRight: Radius.circular(10.0),
                       )),
                       elevation: 3,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: const Color(0xFFFFFFFF),
                       child: Padding(
                         padding: const EdgeInsets.all(18.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              "„${snapshot.data!.text}\"",
+                              "„${snapshot.data!.text}”",
                               style: _quoteTextTheme,
                               textAlign: TextAlign.left,
                             ),
                             Text(
                               "- ${snapshot.data!.originator.name}",
                               textAlign: TextAlign.right,
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onPrimary),
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Color(0xFF222222)),
                             )
                           ],
                         ),
@@ -87,9 +87,10 @@ class QuoteDisplay extends StatelessWidget {
   }
 
   final TextStyle _quoteTextTheme = const TextStyle(
+    fontFamily: "Playfair Display",
     fontStyle: FontStyle.italic,
     fontSize: 25.0,
-    color: Color(0xFFFFFFFF),
+    color: Color(0xFF000000),
 
   );
 }

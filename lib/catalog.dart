@@ -16,6 +16,7 @@ class _CatalogState extends State<Catalog> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         title: const Text("Catalog"),
         actions: [
@@ -39,8 +40,16 @@ class _CatalogState extends State<Catalog> {
               itemCount: snapshot.data?.length,
               itemBuilder: (context, index) {
                 return ListTile(
-                  title: Text("„${snapshot.data![index].text}\"", style: Theme.of(context).textTheme.caption,),
-                  subtitle: Text("- ${snapshot.data![index].originator.name}", style: Theme.of(context).textTheme.labelSmall,),
+                  contentPadding: EdgeInsets.fromLTRB(18.0, 6, 12.0, 12.0),
+                  title: Text(
+                    "„${snapshot.data![index].text}\"",
+                    style: _quoteTextTheme,
+                  ),
+                  subtitle: Text(
+                    "- ${snapshot.data![index].originator.name}",
+                    style: Theme.of(context).textTheme.labelSmall,
+                    textAlign: TextAlign.right,
+                  ),
                 );
               },
             );
@@ -57,4 +66,12 @@ class _CatalogState extends State<Catalog> {
       widget.futureQuotes =  api.getQuotesCatalog(token);
     });
   }
+
+  final TextStyle _quoteTextTheme = const TextStyle(
+    fontFamily: "Playfair Display",
+    fontStyle: FontStyle.italic,
+    fontSize: 25.0,
+    color: Color(0xFF000000),
+
+  );
 }

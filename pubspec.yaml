@@ -76,7 +76,11 @@ flutter:
     - family: IconFont
       fonts:
        - asset: fonts/IconFont.ttf
-
+    - family: Playfair Display
+      fonts:
+      - asset: fonts/PlayfairDisplay-Italic-VariableFont_wght.ttf 
+        style: italic
+      - asset: fonts/PlayfairDisplay-VariableFont_wght.ttf
   #fonts:
   #  - family: Schyler
   #    fonts:
