@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:thequoter_flutter_frontend/icon_font_icons.dart';
 import 'package:thequoter_flutter_frontend/main.dart';
+import 'package:thequoter_flutter_frontend/quote_create.dart';
 import 'package:thequoter_flutter_frontend/quote_display.dart';
 
 class MainMenu extends StatelessWidget {
@@ -62,6 +63,15 @@ class MainMenu extends StatelessWidget {
             ),
             MenuButton(text: "Quote of the day", icon: Icons.format_quote, onPressed: () => ""),
             MenuButton(text: "Catalog", icon: IconFont.inbox, onPressed: () => Navigator.pushNamed(context, "/catalog")),
+            SizedBox(height: 40), // TODO: remove
+            MenuButton(
+              text: "Create quote",
+              icon: Icons.add,
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => QuoteCreate(appData)),
+              )
+            )
           ],
         ),
       ),
