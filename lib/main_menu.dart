@@ -67,10 +67,7 @@ class MainMenu extends StatelessWidget {
             MenuButton(
               text: "Create quote",
               icon: Icons.add,
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => QuoteCreate(appData)),
-              )
+              onPressed: () => Navigator.pushNamed(context, "/quoteCreate", )
             )
           ],
         ),

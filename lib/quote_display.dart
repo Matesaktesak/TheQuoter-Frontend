@@ -26,50 +26,48 @@ class QuoteDisplay extends StatelessWidget {
               if(snapshot.data is List<Quote>?) quote = snapshot.data![0];
               if(snapshot.data is Quote) quote = snapshot.data;
 
-              return Expanded(
-                child: Center(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if(quote.context != null) Padding(
-                        padding: const EdgeInsets.only(left: 8.0),
-                        child: Text(
-                          quote.context!
+              return Center(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if(quote.context != null) Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: Text(
+                        quote.context!
+                      ),
+                    ),
+                    Card(
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(10.0),
+                        topLeft: Radius.circular(10.0),
+                        topRight: Radius.circular(10.0),
+                      )),
+                      elevation: 3,
+                      color: const Color(0xFFFFFFFF),
+                      child: Padding(
+                        padding: const EdgeInsets.all(18.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              "„${quote.text}”",
+                              style: _quoteTextTheme,
+                              textAlign: TextAlign.left,
+                            ),
+                            Text(
+                              "- ${quote.originator.name}",
+                              textAlign: TextAlign.right,
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Color(0xFF222222)),
+                            )
+                          ],
                         ),
-                      ),
-                      Card(
-                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.only(
-                          bottomLeft: Radius.circular(10.0),
-                          topLeft: Radius.circular(10.0),
-                          topRight: Radius.circular(10.0),
-                        )),
-                        elevation: 3,
-                        color: const Color(0xFFFFFFFF),
-                        child: Padding(
-                          padding: const EdgeInsets.all(18.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                "„${quote.text}”",
-                                style: _quoteTextTheme,
-                                textAlign: TextAlign.left,
-                              ),
-                              Text(
-                                "- ${quote.originator.name}",
-                                textAlign: TextAlign.right,
-                                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Color(0xFF222222)),
-                              )
-                            ],
-                          ),
-                        )
-                      ),
-                      if(quote.note != null) Text(
-                        quote.note!
-                      ),
-                    ]
-                  )
-                ),
+                      )
+                    ),
+                    if(quote.note != null) Text(
+                      quote.note!
+                    ),
+                  ]
+                )
               );
             } else {
               return const Center(child: CircularProgressIndicator());

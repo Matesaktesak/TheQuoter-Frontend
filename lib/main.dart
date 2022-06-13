@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:thequoter_flutter_frontend/api.dart';
 
 import 'package:thequoter_flutter_frontend/catalog.dart';
+import 'package:thequoter_flutter_frontend/quote_create.dart';
 import 'package:thequoter_flutter_frontend/register.dart';
 import 'package:thequoter_flutter_frontend/login.dart';
 import 'package:thequoter_flutter_frontend/main_menu.dart';
@@ -57,7 +58,7 @@ class _TheQuoterState extends State<TheQuoter> {
         "/login": (context) => Login(widget.appData),
         "/register": (context) => Register(widget.appData),
         "/catalog": (context) => Catalog(widget.appData),
-        //"/quoteDisplay": (context) => QuoteDisplay(),
+        "/quoteCreate": (context) => QuoteCreate(widget.appData),
       },
       initialRoute: "/login",
     );
