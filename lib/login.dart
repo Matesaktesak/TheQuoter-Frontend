@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:thequoter_flutter_frontend/api.dart';
-import 'package:thequoter_flutter_frontend/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'api.dart';
+import 'main.dart';
 
 class Login extends StatefulWidget {
-  Map<String, String> appData;
+  final SharedPreferences settings;
 
-  Login(this.appData, {Key? key}) : super(key: key);
+  Login({required this.settings, Key? key}) : super(key: key);
 
   @override
   State<Login> createState() => _LoginState();
@@ -19,9 +20,9 @@ class _LoginState extends State<Login> {
 
   @override
   Widget build(BuildContext context) {
-    widget.appData["jwt"] = "";
+    widget.settings.setString("token", ""); // Clear token (log out)
 
-    _usernameController.text = widget.appData["username"] ?? "";
+    _usernameController.text = widget.settings.getString("username") ?? "";
 
     return Scaffold(
       primary: true,
@@ -96,8 +97,8 @@ class _LoginState extends State<Login> {
                             return const CircularProgressIndicator(); // Show a loading indicator
                           } else if (snapshot.connectionState == ConnectionState.done) { // If the API request has finnished
                             if (snapshot.data != "" && snapshot.data != null) { // And a token has been returned
-                              widget.appData["username"] = _usernameController.text; // Save the username
-                              widget.appData["jwt"] = snapshot.data!; // Save the token
+                              widget.settings.setString("username", _usernameController.text); // Save the username
+                              widget.settings.setString("token", snapshot.data!); // Save the token
                               Future.microtask(() => Navigator.pushReplacementNamed( context, "/")); // Go to the main page
                             } else { // If the token is invalid
                               Future.microtask(() => setState(() {

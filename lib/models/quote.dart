@@ -1,5 +1,5 @@
-import 'package:thequoter_flutter_frontend/models/class.dart';
-import 'package:thequoter_flutter_frontend/models/person.dart';
+import 'class.dart';
+import 'person.dart';
 
 class Quote {
   final String id;

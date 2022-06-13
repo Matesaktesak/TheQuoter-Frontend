@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:thequoter_flutter_frontend/main.dart';
-import 'package:thequoter_flutter_frontend/models/class.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'main.dart';
+import 'models/class.dart';
 
 class Register extends StatefulWidget {
-  Map<String, String> appData;
   String? _classId;
+  final SharedPreferences settings;
 
-  Register(this.appData, {Key? key}) : super(key: key);
+  Register({required this.settings, Key? key}) : super(key: key);
 
   @override
   State<Register> createState() => _RegisterState();
@@ -56,7 +57,7 @@ class _RegisterState extends State<Register> {
                         if (snapshot.connectionState == ConnectionState.done) {
                           // If the API request has finnished
                           return DropdownButton(
-                            hint: Text("Class"),
+                            hint: const Text("Class"),
                             value: widget._classId,
                             items: snapshot.data?.map((Class c) {
                               return DropdownMenuItem(
@@ -150,8 +151,9 @@ class _RegisterState extends State<Register> {
                   } else if (snapshot.connectionState == ConnectionState.done) { // If the API request has finnished
                     if (snapshot.data != "" && snapshot.data != null) {         // And a token has been returned
                       print("snapshot.data: ${snapshot.data}");
-                      widget.appData["username"] = _usernameController.text;      // Save the username
-                      widget.appData["jwt"] = snapshot.data!;                     // Save the token
+
+                      widget.settings.setString("username", _usernameController.text);      // Save the username
+                      widget.settings.setString("token", snapshot.data!);                   // Save the token
                       Future.microtask(() => Navigator.pushReplacementNamed(context, "/")); // Go to the main page
                     } else { // If the token is invalid
                       Future.microtask(() => setState(() {
@@ -183,23 +185,6 @@ class _RegisterState extends State<Register> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _passwordController2 = TextEditingController();
 
-/*   void register(appData, Class clas) async {
-    print("Register clicked!");
-    // TODO: Register functionality
-    if (!validate()) return;
-
-    String username = _usernameController.text;
-    String email = _emailController.text;
-    String password = _passwordController.text;
-
-    String token = await api.register(username, email, password, clas);
-
-    appData["username"] = username;
-    appData["jwt"] = token;
-
-    print("username: $username, email: $email, password: $password");
-  }
- */
   bool validate() {
     return _registerFormKey.currentState!.validate();
 

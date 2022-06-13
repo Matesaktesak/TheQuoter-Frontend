@@ -1,23 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thequoter_flutter_frontend/api.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'api.dart';
 
-import 'package:thequoter_flutter_frontend/catalog.dart';
-import 'package:thequoter_flutter_frontend/quote_create.dart';
-import 'package:thequoter_flutter_frontend/register.dart';
-import 'package:thequoter_flutter_frontend/login.dart';
-import 'package:thequoter_flutter_frontend/main_menu.dart';
+import 'catalog.dart';
+import 'quote_create.dart';
+import 'register.dart';
+import 'login.dart';
+import 'main_menu.dart';
 
 QuoterAPI api = QuoterAPI("madison.levicek.net", 8083);
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(TheQuoter());
+  
+  final SharedPreferences settings = await SharedPreferences.getInstance();
+  
+  runApp(TheQuoter(sharedPreferences: settings));
 }
 
 class TheQuoter extends StatefulWidget {
-  Map<String, String> appData = {"username": "", "jwt": ""};
+  final SharedPreferences sharedPreferences;
 
-  TheQuoter({Key? key}) : super(key: key);
+  TheQuoter({required this.sharedPreferences, Key? key}) : super(key: key);
 
   @override
   State<TheQuoter> createState() => _TheQuoterState();
@@ -43,7 +47,10 @@ class TheQuoter extends StatefulWidget {
         headline1: TextStyle(fontSize: 72.0),
         caption: TextStyle(fontStyle: FontStyle.italic), // Quote text
         subtitle1: TextStyle(fontSize: 11.0)
-      ),
+    ),
+    listTileTheme: ListTileThemeData(
+      tileColor: Colors.white,
+    )
   );
 }
 
@@ -54,11 +61,11 @@ class _TheQuoterState extends State<TheQuoter> {
       title: "Hláškomat",
       theme: widget.theme,
       routes: {
-        "/": (context) => MainMenu(widget.appData),
-        "/login": (context) => Login(widget.appData),
-        "/register": (context) => Register(widget.appData),
-        "/catalog": (context) => Catalog(widget.appData),
-        "/quoteCreate": (context) => QuoteCreate(widget.appData),
+        "/": (context) => MainMenu(settings: widget.sharedPreferences),
+        "/login": (context) => Login(settings: widget.sharedPreferences),
+        "/register": (context) => Register(settings: widget.sharedPreferences),
+        "/catalog": (context) => Catalog(settings: widget.sharedPreferences),
+        "/quoteCreate": (context) => QuoteCreate(settings: widget.sharedPreferences),
       },
       initialRoute: "/login",
     );

@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:thequoter_flutter_frontend/icon_font_icons.dart';
-import 'package:thequoter_flutter_frontend/main.dart';
-import 'package:thequoter_flutter_frontend/quote_create.dart';
-import 'package:thequoter_flutter_frontend/quote_display.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'icon_font_icons.dart';
+import 'main.dart';
+import 'quote_create.dart';
+import 'quote_display.dart';
 
 class MainMenu extends StatelessWidget {
-  Map<String, String> appData;
-  MainMenu(this.appData, {Key? key}) : super(key: key);
+  final SharedPreferences settings;
+
+  MainMenu({required this.settings, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         title: const Text("Hláškomat"),
       ),
@@ -54,8 +57,8 @@ class MainMenu extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => QuoteDisplay(
-                      appData: appData,
-                      quote: api.getRandomQuote(appData["jwt"]!),
+                      settings: settings,
+                      future: api.getRandomQuote(settings.getString("token")!),
                     )
                   )
                 );
@@ -63,7 +66,7 @@ class MainMenu extends StatelessWidget {
             ),
             MenuButton(text: "Quote of the day", icon: Icons.format_quote, onPressed: () => ""),
             MenuButton(text: "Catalog", icon: IconFont.inbox, onPressed: () => Navigator.pushNamed(context, "/catalog")),
-            SizedBox(height: 40), // TODO: remove
+            const SizedBox(height: 40), // TODO: remove
             MenuButton(
               text: "Create quote",
               icon: Icons.add,
