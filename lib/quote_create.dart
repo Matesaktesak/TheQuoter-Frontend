@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:thequoter_flutter_frontend/api.dart';
 import 'package:thequoter_flutter_frontend/main.dart';
 import 'package:thequoter_flutter_frontend/models/class.dart';
 import 'package:thequoter_flutter_frontend/models/person.dart';
@@ -20,7 +21,7 @@ class QuoteCreate extends StatefulWidget {
 class _QuoteCreateState extends State<QuoteCreate> {
   final _quoteFormKey = GlobalKey<FormState>();
 
-  Future<String?>? futureQuoteId;
+  Future<QuoteCreationResponse>? futureQuote;
   bool error = false;
 
   @override
@@ -160,8 +161,8 @@ class _QuoteCreateState extends State<QuoteCreate> {
                 height: 18.0,
               ),
               FutureBuilder(
-                future: futureQuoteId,
-                builder: (context, AsyncSnapshot<String?> snapshot) {
+                future: futureQuote,
+                builder: (context, AsyncSnapshot<QuoteCreationResponse?> snapshot) {
                   if (snapshot.connectionState == ConnectionState.none) { // If the API request has not been made yet
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -171,7 +172,7 @@ class _QuoteCreateState extends State<QuoteCreate> {
                             print("Create button pressed");
                             setState(() {
                               if(validate() && widget._originator != null){
-                                futureQuoteId = api.createQuote(
+                                futureQuote = api.createQuote(
                                   widget.appData["jwt"]!,
                                   originator: widget._originator!,
                                   text: _textController.text,
@@ -191,21 +192,49 @@ class _QuoteCreateState extends State<QuoteCreate> {
                       ],
                     );
                   } else if (snapshot.connectionState == ConnectionState.waiting) { // If the API request is still loading
-                    return const CircularProgressIndicator(); // Show a loading indicator
+                    return const CircularProgressIndicator();                     // Show a loading indicator
                   } else if (snapshot.connectionState == ConnectionState.done) { // If the API request has finnished
-                    if (snapshot.data != "" && snapshot.data != null) {         // And a token has been returned
-                      print("snapshot.data: ${snapshot.data}");
-                      Future.microtask(() => Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => QuoteDisplay(
-                            quote: api.getQuote(widget.appData["jwt"]!, text: _textController.text),
-                            appData: widget.appData
-                          ))
-                      )); // Go to the main page
+                    if (snapshot.data != null) {
+                      if(snapshot.data!.statusCode == 201){                        // And a response has been received
+                        //print("snapshot.data: ${snapshot.data}");
+                       
+                        Future.microtask(() {
+                          _textController.clear();                                 // Clear the text field
+                          _contextController.clear();                              // Clear the context field
+                          _noteController.clear();                                 // Clear the note field
+
+                          /* setState(() {
+                            widget._originatorId = null;                            // Clear the originator field
+                            widget._originator = null;
+                            widget._classId = null;                                 // Clear the class field
+                            widget._class = null;                                   // Clear the class field
+                          }); */
+
+                          print(snapshot.data!.id);
+
+                          Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => QuoteDisplay(
+                              quote: api.getQuote(widget.appData["jwt"]!, id: snapshot.data!.id),
+                              appData: widget.appData
+                            ))
+                          );
+                        }); // Go to the main page
+                      } else if(snapshot.data!.statusCode == 202) {
+                        return Column(
+                          children: [
+                            const Text("The quote has been accepted and is pending approval"),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pushReplacementNamed(context, "/quoteCreate"),
+                              child: const Text("Create another quote"),
+                            ),
+                          ],
+                        );
+                      }
                     } else { // If the token is invalid
                       Future.microtask(() => setState(() {
-                        futureQuoteId = null; // Reset the future token
+                        futureQuote = null; // Reset the future token
                         error = true; // Show an error message
                       }));
                     }
