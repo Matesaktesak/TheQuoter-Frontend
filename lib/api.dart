@@ -1,10 +1,11 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:thequoter_flutter_frontend/models/person.dart';
-import 'package:thequoter_flutter_frontend/models/class.dart';
 import 'dart:async';
+import 'package:http/http.dart' as http;
 
-import 'package:thequoter_flutter_frontend/models/quote.dart';
+import 'models/person.dart';
+import 'models/class.dart';
+import 'models/quote.dart';
+
 
 class QuoterAPI {
   String serverAddress;
@@ -44,7 +45,7 @@ class QuoterAPI {
 
       if (res.statusCode == 200) {
         print("Login sucessfull");
-        print("Token: " + jsonDecode(res.body)["token"]);
+        print("Token: ${jsonDecode(res.body)["token"]}");
         return jsonDecode(res.body)["token"];
       } else {
         print("Login failed");
@@ -98,7 +99,7 @@ class QuoterAPI {
     if (res.statusCode == 200) {
       print("Classes fetched");
 
-      List<Class> fetched = (jsonDecode(res.body)["classes"] as List)
+      List<Class> fetched = (jsonDecode(res.body) as List)
           .map<Class>((e) => Class.fromJson(e))
           .toList();
 
@@ -128,7 +129,7 @@ class QuoterAPI {
     if (res.statusCode == 200) {
       print("Teachers fetched");
 
-      List<Person> fetched = (jsonDecode(res.body)["people"] as List)
+      List<Person> fetched = (jsonDecode(res.body) as List)
           .map<Person>((e) => Person.fromJson(e))
           .toList();
 
@@ -145,7 +146,6 @@ class QuoterAPI {
   // Get quotes by query
   Future<List<Quote>?>? getQuote(String token, {String? id, String? text, Person? originator, Class? clas}) async {
     // Prepare the query URI
-    print("/quotes${id != null ? "/$id" : ""}");
     Uri uri = Uri(
       scheme: "http",
       port: serverPort,
@@ -173,8 +173,8 @@ class QuoterAPI {
 
       List<Quote>? fetched;
       // If we are featching multiple potential quotes, the server wraps the quotes in "quotes" field
-      if(jsonDecode(res.body)["quotes"] != null && id == null){
-        fetched = (jsonDecode(res.body)["quotes"] as List)
+      if(jsonDecode(res.body) != null && id == null){
+        fetched = (jsonDecode(res.body) as List)
           .map<Quote>((e) => Quote.fromJson(e))
           .toList();
       } else if(jsonDecode(res.body) != null && id != null){ // in case it was a single quote
@@ -223,7 +223,7 @@ class QuoterAPI {
   }
 
   // Create a new quote
-  Future<QuoteCreationResponse> createQuote(String token,{
+  Future<QuoteCreationResponse> createQuote({required String token,
     required String text,
     String? context,
     String? note,
@@ -256,6 +256,38 @@ class QuoterAPI {
     } else {
       return QuoteCreationResponse(null, res.statusCode);
       throw Exception("Quote creation error(${res.statusCode})");
+    }
+  }
+
+  // Edit a quote
+  Future<QuoteCreationResponse> editQuote({required String token,
+    required Quote quote}) async {
+    Uri uri = Uri(
+      scheme: "http",
+      port: serverPort,
+      host: serverAddress,
+      path: "/quotes/${quote.id}"
+    );
+
+    http.Response res = await http.put(
+      uri,
+      headers: {
+        "Authorization": "Bearer $token",
+      },
+      body: {
+        "text": quote.text,
+        if(quote.context != null) "context": quote.context,
+        if(quote.note != null) "note": quote.note,
+        "originator": quote.originator.id,
+        if(quote.clas != null) "class": quote.clas?.id
+      }
+    );
+
+    if (res.statusCode == 204) {
+      return QuoteCreationResponse(quote.id, res.statusCode);
+    } else {
+      return QuoteCreationResponse(null, res.statusCode);
+      throw Exception("Quote editing error(${res.statusCode})");
     }
   }
 }

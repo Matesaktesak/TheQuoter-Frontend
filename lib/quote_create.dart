@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:thequoter_flutter_frontend/api.dart';
-import 'package:thequoter_flutter_frontend/main.dart';
-import 'package:thequoter_flutter_frontend/models/class.dart';
-import 'package:thequoter_flutter_frontend/models/person.dart';
-import 'package:thequoter_flutter_frontend/quote_display.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'api.dart';
+import 'main.dart';
+import 'models/class.dart';
+import 'models/person.dart';
+import 'quote_display.dart';
+
+import 'models/quote.dart';
 
 class QuoteCreate extends StatefulWidget {
-  Map<String, String> appData;
+  final SharedPreferences settings;
+
   Class? _class;
   String? _classId = "";
   Person? _originator;
   String? _originatorId;
 
-  QuoteCreate(this.appData, {Key? key}) : super(key: key);
+  Quote? isEdit;
+
+  QuoteCreate({required this.settings, this.isEdit, Key? key}) : super(key: key);
 
   @override
   State<QuoteCreate> createState() => _QuoteCreateState();
@@ -25,11 +31,28 @@ class _QuoteCreateState extends State<QuoteCreate> {
   bool error = false;
 
   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    if(widget.isEdit != null){
+      _textController.text = widget.isEdit?.text ?? "";
+      _contextController.text = widget.isEdit?.context ?? "";
+      _noteController.text = widget.isEdit?.note ?? "";
+
+      widget._class = widget.isEdit?.clas;
+      widget._classId = widget.isEdit?.clas?.id;
+
+      widget._originator = widget.isEdit?.originator;
+      widget._originatorId = widget.isEdit?.originator.id;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       primary: true,
       appBar: AppBar(
-        title: const Text("Create new Quote"),
+        title: widget.isEdit == null ? const Text("Create new Quote") : const Text("Edit Quote"),
         backgroundColor: Theme.of(context).colorScheme.primary,
       ),
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -168,22 +191,41 @@ class _QuoteCreateState extends State<QuoteCreate> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         ElevatedButton( // Show the register button
-                          onPressed: () {
-                            print("Create button pressed");
+                          onPressed: () async {
+                            final token = (await SharedPreferences.getInstance()).getString("token");
+
+                            //print("Create button pressed");
                             setState(() {
                               if(validate() && widget._originator != null){
-                                futureQuote = api.createQuote(
-                                  widget.appData["jwt"]!,
+                                if(widget.isEdit == null) {
+                                  futureQuote = api.createQuote(
+                                  token: token!,
                                   originator: widget._originator!,
                                   text: _textController.text,
                                   context: _contextController.text,
                                   note: _noteController.text,
                                   clas: widget._class
                                 );
+                                }
+
+                                if(widget.isEdit != null) {
+                                  futureQuote = api.editQuote(
+                                  token: token!,
+                                  quote: Quote(
+                                    id: widget.isEdit!.id,
+                                    originator: widget._originator!,
+                                    text: _textController.text,
+                                    context: _contextController.text,
+                                    note: _noteController.text,
+                                    clas: widget._class
+                                  ),
+                                  
+                                );
+                                }
                               }
                             });
                           },
-                          child: const Text("Submit"),
+                          child: widget.isEdit == null ? const  Text("Submit") : const Text("Update"),
                         ),
                         if (error) const Padding( // Show error message
                           padding: EdgeInsets.only(left: 8.0),
@@ -195,7 +237,7 @@ class _QuoteCreateState extends State<QuoteCreate> {
                     return const CircularProgressIndicator();                     // Show a loading indicator
                   } else if (snapshot.connectionState == ConnectionState.done) { // If the API request has finnished
                     if (snapshot.data != null) {
-                      if(snapshot.data!.statusCode == 201){                        // And a response has been received
+                      if(snapshot.data!.statusCode == 201 || snapshot.data!.statusCode == 204){  // And a response has been received
                         //print("snapshot.data: ${snapshot.data}");
                        
                         Future.microtask(() {
@@ -210,16 +252,29 @@ class _QuoteCreateState extends State<QuoteCreate> {
                             widget._class = null;                                   // Clear the class field
                           }); */
 
-                          print(snapshot.data!.id);
+                          //print(snapshot.data!.id);
 
-                          Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => QuoteDisplay(
-                              quote: api.getQuote(widget.appData["jwt"]!, id: snapshot.data!.id),
-                              appData: widget.appData
-                            ))
-                          );
+                          if(widget.isEdit == null) {
+                            Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => QuoteDisplay(
+                                future: api.getQuote(widget.settings.getString("token")!, id: snapshot.data!.id),
+                                settings: widget.settings,
+                              ))
+                            );
+                          } else {
+                            Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => QuoteDisplay(
+                                future: api.getQuote(widget.settings.getString("token")!, id: snapshot.data!.id),
+                                settings: widget.settings,
+                              ))
+                            );
+                          }
+
+
                         }); // Go to the main page
                       } else if(snapshot.data!.statusCode == 202) {
                         return Column(
