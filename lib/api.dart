@@ -143,19 +143,20 @@ class QuoterAPI {
 
 
   // Get quotes by query
-  Future<List<Quote>?>? getQuote(String token, {String? text, Person? originator, Class? clas}) async {
+  Future<List<Quote>?>? getQuote(String token, {String? id, String? text, Person? originator, Class? clas}) async {
     // Prepare the query URI
+    print("/quotes${id != null ? "/$id" : ""}");
     Uri uri = Uri(
       scheme: "http",
       port: serverPort,
       host: serverAddress,
-      path: "/quotes",
-      queryParameters: {
+      path: "/quotes${id != null ? "/$id" : ""}",
+      queryParameters: id == null ? {
         if(text != null) "text": text,
         if(originator != null) "originator": originator.id,
         if(clas != null) "class": clas.id,
         "state": "public",
-      },
+      } : null,
     );
 
     // Send a get request to the server
@@ -170,10 +171,15 @@ class QuoterAPI {
       // If the request was successful
       print("Quotes fetched");
 
-      List<Quote>? fetched = (jsonDecode(res.body)["quotes"] as List)
+      List<Quote>? fetched;
+      // If we are featching multiple potential quotes, the server wraps the quotes in "quotes" field
+      if(jsonDecode(res.body)["quotes"] != null && id == null){
+        fetched = (jsonDecode(res.body)["quotes"] as List)
           .map<Quote>((e) => Quote.fromJson(e))
           .toList();
-
+      } else if(jsonDecode(res.body) != null && id != null){ // in case it was a single quote
+        fetched = [Quote.fromJson(jsonDecode(res.body))];
+      }
       //print("${fetched.map((e) => e.id)}: ${fetched.map((e) => e.text)}");
 
       return fetched;
@@ -217,7 +223,7 @@ class QuoterAPI {
   }
 
   // Create a new quote
-  Future<String> createQuote(String token,{
+  Future<QuoteCreationResponse> createQuote(String token,{
     required String text,
     String? context,
     String? note,
@@ -245,10 +251,19 @@ class QuoterAPI {
       }
     );
 
-    if (res.statusCode == 201) {
-      return jsonDecode(res.body)["_id"];
+    if (res.statusCode == 201 || res.statusCode == 202) {
+      return QuoteCreationResponse(jsonDecode(res.body)["_id"], res.statusCode);
     } else {
+      return QuoteCreationResponse(null, res.statusCode);
       throw Exception("Quote creation error(${res.statusCode})");
     }
   }
+}
+
+// Created quote object
+class QuoteCreationResponse{
+  final String? id;
+  final int statusCode;
+
+  QuoteCreationResponse(this.id, this.statusCode);
 }
