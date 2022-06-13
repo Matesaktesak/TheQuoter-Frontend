@@ -67,7 +67,10 @@ class _TheQuoterState extends State<TheQuoter> {
         "/catalog": (context) => Catalog(settings: widget.sharedPreferences),
         "/quoteCreate": (context) => QuoteCreate(settings: widget.sharedPreferences),
       },
-      initialRoute: "/login",
+
+      // Only show the login screen if no JWT is present
+      // TODO: Validate the JWT before showing the main menu
+      initialRoute: widget.sharedPreferences.getString("token") == "" || widget.sharedPreferences.getString("token") == null ? "/login" : "/",
     );
   }
 }
