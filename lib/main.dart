@@ -48,7 +48,7 @@ class TheQuoter extends StatefulWidget {
         caption: TextStyle(fontStyle: FontStyle.italic), // Quote text
         subtitle1: TextStyle(fontSize: 11.0)
     ),
-    listTileTheme: ListTileThemeData(
+    listTileTheme: const ListTileThemeData(
       tileColor: Colors.white,
     )
   );
@@ -57,6 +57,8 @@ class TheQuoter extends StatefulWidget {
 class _TheQuoterState extends State<TheQuoter> {
   @override
   Widget build(BuildContext context) {
+    print(widget.sharedPreferences.getString("token"));
+
     return MaterialApp(
       title: "Hláškomat",
       theme: widget.theme,

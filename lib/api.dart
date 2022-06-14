@@ -290,6 +290,30 @@ class QuoterAPI {
       throw Exception("Quote editing error(${res.statusCode})");
     }
   }
+
+  // Edit quote status
+  Future<QuoteCreationResponse> setStatusQuote({required String token, required Quote quote, required Status status,}) async {
+    Uri uri = Uri(
+      scheme: "http",
+      port: serverPort,
+      host: serverAddress,
+      path: "/quotes/${quote.id}/status"
+    );
+    http.Response res = await http.post(
+      uri,
+      headers: {
+        "Authorization": token
+      },
+      body: {
+        "status": status.name
+      }
+    );
+
+    if(res.statusCode == 204){
+      return QuoteCreationResponse(quote.id, res.statusCode);
+    } else throw Exception("Server refused update");
+}
+
 }
 
 // Created quote object

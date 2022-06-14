@@ -19,10 +19,16 @@ class _LoginState extends State<Login> {
   bool error = false;
 
   @override
+  void initState(){
+    super.initState();
+    _usernameController.text = widget.settings.getString("username") ?? "";
+  }
+
+  @override
   Widget build(BuildContext context) {
     widget.settings.setString("token", ""); // Clear token (log out)
 
-    _usernameController.text = widget.settings.getString("username") ?? "";
+    //_usernameController.text = widget.settings.getString("username") ?? "";
 
     return Scaffold(
       primary: true,
@@ -107,6 +113,8 @@ class _LoginState extends State<Login> {
                               }));
                             }
                           }
+
+                          // TODO: Fix login to accept new data
 
                           if (snapshot.hasError) {
                             return Text(
