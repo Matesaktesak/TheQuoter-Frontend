@@ -27,7 +27,7 @@ class QuoteCreate extends StatefulWidget {
 class _QuoteCreateState extends State<QuoteCreate> {
   final _quoteFormKey = GlobalKey<FormState>();
 
-  Future<QuoteCreationResponse>? futureQuote;
+  Future<QuoteActionResponse>? futureQuote;
   bool error = false;
 
   @override
@@ -185,7 +185,7 @@ class _QuoteCreateState extends State<QuoteCreate> {
               ),
               FutureBuilder(
                 future: futureQuote,
-                builder: (context, AsyncSnapshot<QuoteCreationResponse?> snapshot) {
+                builder: (context, AsyncSnapshot<QuoteActionResponse?> snapshot) {
                   if (snapshot.connectionState == ConnectionState.none) { // If the API request has not been made yet
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.center,

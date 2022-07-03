@@ -3,7 +3,7 @@ import 'person.dart';
 
 enum Status {
   pending,
-  approved
+  public
 }
 
 class Quote {
@@ -14,7 +14,7 @@ class Quote {
   final String? note;
   final Person originator;
   final Class? clas;
-  final Status? status;
+  final Status? state;
 
   const Quote({
     required this.id,
@@ -24,15 +24,15 @@ class Quote {
     this.note,
     required this.originator,
     this.clas,
-    this.status,
+    this.state,
   });
 
   // From a JSON object
   static Quote fromJson(Map<String, dynamic> json) {
-    Status? status;
-    switch(json["status"]){
-        case "pending": status = Status.pending; break;
-        case "approved": status = Status.approved; break;
+    Status? state;
+    switch(json["state"]){
+        case "pending": state = Status.pending; break;
+        case "public": state = Status.public; break;
     }
 
     return Quote(
@@ -43,7 +43,7 @@ class Quote {
       note: json["note"],
       originator: Person.fromJson(json["originator"]),
       clas: json["class"] != null ? Class.fromJson(json["class"]) : null,
-      status: status,
+      state: state,
     );
   }
 }
