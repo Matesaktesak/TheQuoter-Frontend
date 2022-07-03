@@ -30,7 +30,7 @@ class QuoterAPI {
   }
 
   // Login request
-  Future<String?> login(String username, String pwd) async {
+  Future<UserStateResponse?> login(String username, String pwd) async {
     try{
       Uri uri = Uri(
           scheme: "http",
@@ -46,21 +46,32 @@ class QuoterAPI {
       if (res.statusCode == 200) {
         print("Login sucessfull");
         print("Token: ${jsonDecode(res.body)["token"]}");
-        return jsonDecode(res.body)["token"];
+
+        Map<String, dynamic> data = jsonDecode(res.body);
+
+        return UserStateResponse(
+          token: data["token"],
+          id: data["user"]["_id"],
+          username: data["user"]["username"],
+          email: data["user"]["email"],
+          role: data["user"]["role"]
+        );
       } else {
         print("Login failed");
         return null;
         throw Exception("Login failed(${res.statusCode})");
       }
     } catch (e) {
-      print("Login failed");
+      print("Login failed, $e");
       return null;
     }
   }
 
   // Register request
   Future<String?> register(String username, String email, String pwd, Class clas) async {
-      Uri url = Uri(
+    // TODO: Refactor into UserStateResponse type
+    
+    Uri url = Uri(
       scheme: "http",
       port: serverPort,
       host: serverAddress, 
@@ -144,7 +155,7 @@ class QuoterAPI {
 
 
   // Get quotes by query
-  Future<List<Quote>?>? getQuote(String token, {String? id, String? text, Person? originator, Class? clas}) async {
+  Future<List<Quote>?>? getQuote(String token, {String? id, String? text, Person? originator, Class? clas, Status? state}) async {
     // Prepare the query URI
     Uri uri = Uri(
       scheme: "http",
@@ -155,7 +166,7 @@ class QuoterAPI {
         if(text != null) "text": text,
         if(originator != null) "originator": originator.id,
         if(clas != null) "class": clas.id,
-        "state": "public",
+        if(state != null) "state": state.name else "state": "public",
       } : null,
     );
 
@@ -218,12 +229,23 @@ class QuoterAPI {
     }
   }
 
-  Future<List<Quote>?>? getQuotesCatalog(String token) async {
-    return getQuote(token, ); // TODO: Implement proper catalog fetching
+  Future<List<Quote>?>? getQuotesCatalog({required String token, required String role}) async {
+    List<Quote> catalog = List<Quote>.empty(
+      growable: true
+    );
+
+    List<Quote>? pending;
+    if(role == "admin") pending = await getQuote(token, state: Status.pending);
+    if(role == "admin" && pending != null) catalog.addAll(pending);
+    
+    List<Quote>? public = await getQuote(token, state: Status.public);
+    if(public != null) catalog.addAll(public);
+
+    return catalog; // TODO: Implement proper catalog fetching
   }
 
   // Create a new quote
-  Future<QuoteCreationResponse> createQuote({required String token,
+  Future<QuoteActionResponse> createQuote({required String token,
     required String text,
     String? context,
     String? note,
@@ -252,15 +274,15 @@ class QuoterAPI {
     );
 
     if (res.statusCode == 201 || res.statusCode == 202) {
-      return QuoteCreationResponse(jsonDecode(res.body)["_id"], res.statusCode);
+      return QuoteActionResponse(jsonDecode(res.body)["_id"], res.statusCode);
     } else {
-      return QuoteCreationResponse(null, res.statusCode);
+      return QuoteActionResponse(null, res.statusCode);
       throw Exception("Quote creation error(${res.statusCode})");
     }
   }
 
   // Edit a quote
-  Future<QuoteCreationResponse> editQuote({required String token,
+  Future<QuoteActionResponse> editQuote({required String token,
     required Quote quote}) async {
     Uri uri = Uri(
       scheme: "http",
@@ -284,42 +306,92 @@ class QuoterAPI {
     );
 
     if (res.statusCode == 204) {
-      return QuoteCreationResponse(quote.id, res.statusCode);
+      return QuoteActionResponse(quote.id, res.statusCode);
     } else {
-      return QuoteCreationResponse(null, res.statusCode);
+      return QuoteActionResponse(null, res.statusCode);
       throw Exception("Quote editing error(${res.statusCode})");
     }
   }
 
   // Edit quote status
-  Future<QuoteCreationResponse> setStatusQuote({required String token, required Quote quote, required Status status,}) async {
+  Future<QuoteActionResponse> setStatusQuote({required String token, required Quote quote, required Status status,}) async {
     Uri uri = Uri(
       scheme: "http",
       port: serverPort,
       host: serverAddress,
-      path: "/quotes/${quote.id}/status"
+      path: "/quotes/${quote.id}/state"
     );
+
     http.Response res = await http.post(
       uri,
       headers: {
-        "Authorization": token
+        "Authorization": "Bearer $token"
       },
       body: {
-        "status": status.name
+        "state": status.name
       }
     );
 
     if(res.statusCode == 204){
-      return QuoteCreationResponse(quote.id, res.statusCode);
-    } else throw Exception("Server refused update");
-}
+      print("State changed.");
+      return QuoteActionResponse(quote.id, res.statusCode);
+    } else {
+      print("Status ${res.statusCode}");
+      throw Exception("Server refused update");
+    }
+  }
+
+  // Delete a quote
+  Future<QuoteActionResponse> deleteQuote({required String token,
+    required Quote quote}) async {
+    Uri uri = Uri(
+      scheme: "http",
+      port: serverPort,
+      host: serverAddress,
+      path: "/quotes/${quote.id}"
+    );
+
+    print(uri);
+
+    http.Response res = await http.delete(
+      uri,
+      headers: {
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (res.statusCode == 204) {
+      print("Deletion sucessfull");
+      return QuoteActionResponse(null, res.statusCode);
+    } else {
+      print("Deletion refused: ${res.statusCode}");
+        return QuoteActionResponse(null, res.statusCode);
+      throw Exception("Quote editing error(${res.statusCode})");
+    }
+  }
 
 }
 
 // Created quote object
-class QuoteCreationResponse{
+class QuoteActionResponse{
   final String? id;
   final int statusCode;
 
-  QuoteCreationResponse(this.id, this.statusCode);
+  QuoteActionResponse(this.id, this.statusCode);
+}
+
+class UserStateResponse{
+  final String token;
+  final String id;
+  final String username;
+  final String email;
+  final String role;
+
+  UserStateResponse({
+    required this.token,
+    required this.id,
+    required this.username,
+    required this.role,
+    required this.email
+  });
 }
