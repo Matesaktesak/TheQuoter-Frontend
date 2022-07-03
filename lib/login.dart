@@ -15,7 +15,7 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   final _loginFormKey = GlobalKey<FormState>();
 
-  Future<String?>? futureToken;
+  Future<UserStateResponse?>? futureUser;
   bool error = false;
 
   @override
@@ -76,8 +76,8 @@ class _LoginState extends State<Login> {
                         height: 18.0,
                       ),
                       FutureBuilder(
-                        future: futureToken,
-                        builder: (context, AsyncSnapshot<String?> snapshot) {
+                        future: futureUser,
+                        builder: (context, AsyncSnapshot<UserStateResponse?> snapshot) {
                           if (snapshot.connectionState == ConnectionState.none) { // If the API request has not been made yet
                             return Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -86,7 +86,7 @@ class _LoginState extends State<Login> {
                                   // Show the login button
                                   onPressed: () {
                                     setState(() {
-                                      futureToken = api.login(
+                                      futureUser = api.login(
                                           _usernameController.text,
                                           _passwordController.text);
                                     });
@@ -104,11 +104,14 @@ class _LoginState extends State<Login> {
                           } else if (snapshot.connectionState == ConnectionState.done) { // If the API request has finnished
                             if (snapshot.data != "" && snapshot.data != null) { // And a token has been returned
                               widget.settings.setString("username", _usernameController.text); // Save the username
-                              widget.settings.setString("token", snapshot.data!); // Save the token
+                              widget.settings.setString("token", snapshot.data!.token); // Save the token
+                              widget.settings.setString("id", snapshot.data!.id);
+                              widget.settings.setString("role", snapshot.data!.role);
+                              widget.settings.setString("email", snapshot.data!.email);
                               Future.microtask(() => Navigator.pushReplacementNamed( context, "/")); // Go to the main page
                             } else { // If the token is invalid
                               Future.microtask(() => setState(() {
-                                futureToken = null; // Reset the future token
+                                futureUser = null; // Reset the future token
                                 error = true; // Show an error message
                               }));
                             }
