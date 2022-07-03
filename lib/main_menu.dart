@@ -23,6 +23,18 @@ class MainMenu extends StatelessWidget {
           padding: const EdgeInsets.all(8.0),
           child: Column(
             children: [
+              SizedBox(
+                child: Column(
+                  children: [
+                    Text(settings.getString("username")!,
+                      style: Theme.of(context).textTheme.headline5
+                    ),
+                    Text(settings.getString("email")!),
+                    const SizedBox(height: 8.0,),
+                    Text(settings.getString("role")!)
+                  ],
+                ),
+              ),
               Expanded( // Go to catalog
                 child: TextButton(
                   onPressed: () {
