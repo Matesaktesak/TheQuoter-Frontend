@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'icon_font_icons.dart';
+
 import 'main.dart';
 import 'models/quote.dart';
 
@@ -8,7 +9,7 @@ class QuoteDisplay extends StatelessWidget {
   final SharedPreferences settings;
 
   Quote? quote;
-  dynamic future;
+  final dynamic future;
 
   QuoteDisplay({required this.settings, Key? key, this.future, this.quote}) : super(key: key);
 
@@ -106,7 +107,7 @@ class QuoteBlock extends StatelessWidget {
                   Text(
                     "- ${quote.originator.name}",
                     textAlign: TextAlign.right,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Color(0xFF222222)),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(color: const Color(0xFF222222)),
                   )
                 ],
               ),

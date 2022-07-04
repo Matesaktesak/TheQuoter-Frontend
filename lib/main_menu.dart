@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'icon_font_icons.dart';
 import 'main.dart';
-import 'quote_create.dart';
 import 'quote_display.dart';
 
 class MainMenu extends StatelessWidget {
   final SharedPreferences settings;
 
-  MainMenu({required this.settings, Key? key}) : super(key: key);
+  const MainMenu({required this.settings, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

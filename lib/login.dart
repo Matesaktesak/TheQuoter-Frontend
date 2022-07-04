@@ -6,7 +6,7 @@ import 'main.dart';
 class Login extends StatefulWidget {
   final SharedPreferences settings;
 
-  Login({required this.settings, Key? key}) : super(key: key);
+  const Login({required this.settings, Key? key}) : super(key: key);
 
   @override
   State<Login> createState() => _LoginState();
@@ -102,7 +102,7 @@ class _LoginState extends State<Login> {
                           } else if (snapshot.connectionState == ConnectionState.waiting) { // If the API request is still loading
                             return const CircularProgressIndicator(); // Show a loading indicator
                           } else if (snapshot.connectionState == ConnectionState.done) { // If the API request has finnished
-                            if (snapshot.data != "" && snapshot.data != null) { // And a token has been returned
+                            if (snapshot.data != null) { // And a token has been returned
                               widget.settings.setString("username", _usernameController.text); // Save the username
                               widget.settings.setString("token", snapshot.data!.token); // Save the token
                               widget.settings.setString("id", snapshot.data!.id);
@@ -116,8 +116,6 @@ class _LoginState extends State<Login> {
                               }));
                             }
                           }
-
-                          // TODO: Fix login to accept new data
 
                           if (snapshot.hasError) {
                             return Text(

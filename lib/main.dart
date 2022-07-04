@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,7 +27,7 @@ class TheQuoter extends StatefulWidget {
   @override
   State<TheQuoter> createState() => _TheQuoterState();
 
-  ThemeData theme = ThemeData(
+  final ThemeData theme = ThemeData(
     disabledColor: const Color(0xFFC6D8D3),
     shadowColor: const Color(0xFF3A3335),
     colorScheme: const ColorScheme(
@@ -57,7 +58,7 @@ class TheQuoter extends StatefulWidget {
 class _TheQuoterState extends State<TheQuoter> {
   @override
   Widget build(BuildContext context) {
-    print(widget.sharedPreferences.getString("token"));
+    if(kDebugMode) print("Existing token: ${widget.sharedPreferences.getString("token")}");
 
     return MaterialApp(
       title: "Hláškomat",

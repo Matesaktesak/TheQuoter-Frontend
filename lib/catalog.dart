@@ -14,15 +14,16 @@ import 'quote_display.dart';
 class Catalog extends StatefulWidget {
   final SharedPreferences settings;
 
-  Future<List<Quote>?>? futureQuotes;
-
-  Catalog({required this.settings, Key? key}) : super(key: key);
+  const Catalog({required this.settings, Key? key}) : super(key: key);
 
   @override
   State<Catalog> createState() => _CatalogState();
 }
 
 class _CatalogState extends State<Catalog> {
+  Future<List<Quote>?>? _futureQuotes;
+  List<Quote>? _quotes;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,18 +55,25 @@ class _CatalogState extends State<Catalog> {
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
         child: FutureBuilder(
-          future: widget.futureQuotes,
+          future: _futureQuotes,
           builder: (context, AsyncSnapshot<List<Quote>?> snapshot) {
             if(snapshot.connectionState == ConnectionState.none){
               Future.microtask(() => refresh(widget.settings.getString("token")!, widget.settings.getString("role")!));
             } else if(snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+              _quotes = snapshot.data!; // Assign the fetched quotes to the processed ones
+
               return ListView.separated(
                 controller: Platform.isWindows || Platform.isLinux ? AdjustableScrollController(20) : null,
                 separatorBuilder: (context, index) => const SizedBox(height: 5,),
-                itemCount: snapshot.data!.length,
+                itemCount: _quotes!.length,
                 itemBuilder: (context, index) {
+                  final bool approveButton = _quotes![index].state != Status.public && widget.settings.getString("role") == "admin";
+                  final bool deleteButton = widget.settings.getString("role") == "admin";
+
+                  final double er = (approveButton ? 0.2 : 0) + (deleteButton ? 0.2 : 0);
+
                   return Card(
                     shape: const RoundedRectangleBorder(
                       borderRadius: BorderRadius.only(
@@ -75,15 +83,17 @@ class _CatalogState extends State<Catalog> {
                     )),
                     elevation: 3,
                     child: Slidable(
+                      closeOnScroll: true,
                       endActionPane: ActionPane(
+                        extentRatio: er,
                         motion: const DrawerMotion(),
                         children: [
-                          if(snapshot.data![index].state != Status.public && widget.settings.getString("role") == "admin") SlidableAction(
+                          if(approveButton) SlidableAction(
                             onPressed: (context){
                               api.setStatusQuote(
                                 token: widget.settings.getString("token")!,
-                                quote: snapshot.data![index],
-                                status: Status.public,
+                                quote: _quotes![index],
+                                state: Status.public,
                               ).then((e){
                                  setState(() => refresh(widget.settings.getString("token")!, widget.settings.getString("role")!));  
                               });
@@ -91,25 +101,27 @@ class _CatalogState extends State<Catalog> {
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,
                             icon: Icons.check,
-                            label: "Approve",
+                            label: "OK",
                           ),
-                          if(widget.settings.getString("role") == "admin")SlidableAction(
+                          if(deleteButton) SlidableAction(
                             onPressed: (context){
                               api.deleteQuote(
                                 token: widget.settings.getString("token")!,
-                                quote: snapshot.data![index]
-                              );
+                                quote: _quotes![index]
+                              ).then((e){
+                                 setState(() => _quotes!.remove(_quotes![index]));  
+                              });
                             },
                             backgroundColor: Colors.red,
                             foregroundColor: Colors.white,
                             icon: Icons.delete,
-                            label: "Delete",
+                            label: "NOK",
                           ),
                         ],
                       ),
                       child: ListTile(
                         dense: true,
-                        tileColor: snapshot.data![index].state == Status.public ? Colors.white : const Color.fromARGB(255, 255, 169, 169),
+                        tileColor: _quotes![index].state == Status.public ? Colors.white : const Color.fromARGB(255, 255, 169, 169),
                         shape: const RoundedRectangleBorder(
                           borderRadius: BorderRadius.only(
                           bottomLeft: Radius.circular(10.0),
@@ -118,19 +130,19 @@ class _CatalogState extends State<Catalog> {
                         )),
                         contentPadding: const EdgeInsets.fromLTRB(18.0, 6, 12.0, 12.0),
                         title: Text(
-                          "„${snapshot.data![index].text}\"",
+                          "„${_quotes![index].text}\"",
                           style: _quoteTextTheme,
                         ),
                         subtitle: Text(
-                          "- ${snapshot.data![index].originator.name}",
+                          "- ${_quotes![index].originator.name}",
                           style: Theme.of(context).textTheme.labelSmall,
                           textAlign: TextAlign.right,
                         ),
                         onTap: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteDisplay(settings: widget.settings, quote: snapshot.data![index])));
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteDisplay(settings: widget.settings, quote: _quotes![index])));
                         },
                         onLongPress: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: widget.settings, isEdit: snapshot.data![index])));
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: widget.settings, isEdit: _quotes![index])));
                         }
                      ),
                     ),
@@ -156,7 +168,7 @@ class _CatalogState extends State<Catalog> {
 
   void refresh(String token, String role) {
     setState(() {
-      widget.futureQuotes =  api.getQuotesCatalog(token: token, role: role);
+      _futureQuotes =  api.getQuotesCatalog(token: token, role: role);
     });
   }
 
