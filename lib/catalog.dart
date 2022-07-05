@@ -5,11 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'main.dart';
-import 'models/quote.dart';
 
+import 'main.dart';
 import 'quote_create.dart';
 import 'quote_display.dart';
+import 'models/quote.dart';
+import 'models/person.dart';
 
 class Catalog extends StatefulWidget {
   final SharedPreferences settings;
@@ -23,6 +24,18 @@ class Catalog extends StatefulWidget {
 class _CatalogState extends State<Catalog> {
   Future<List<Quote>?>? _futureQuotes;
   List<Quote>? _quotes;
+
+  Person? filterTeacher;
+
+  static final Map<String, int Function(Quote, Quote)> sortingFunctions = {
+    "Default": <int>(a,b) => 0,
+    "Alphabeticaly": (a,b) => a.text.compareTo(b.text),
+    "Length": (a,b) => a.text.length.compareTo(b.text.length),
+    "Originator": (a,b) => a.originator.name.compareTo(b.originator.name),
+    "Random": <int>(a,b) => Random().nextInt(100) - 50,
+  };
+
+  int Function(Quote a, Quote b)? sortMethod = sortingFunctions["Default"];
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +76,8 @@ class _CatalogState extends State<Catalog> {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
               _quotes = snapshot.data!; // Assign the fetched quotes to the processed ones
+              
+              _quotes?.sort(sortMethod);
 
               return ListView.separated(
                 controller: Platform.isWindows || Platform.isLinux ? AdjustableScrollController(20) : null,
@@ -185,6 +200,31 @@ class _CatalogState extends State<Catalog> {
 
   void openFilter(BuildContext context){
     // TODO: Implement
+
+    showModalBottomSheet(context: context, elevation: 8, builder: (context){
+      return StatefulBuilder(
+
+        builder: (context, setState2) => Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            const Text("Filter"),
+            //FutureBuilder(builder: (context, snapshot){return Placeholder();}), // Teachers dropdown
+            
+            const Text("Sort by:"),
+      
+            ...sortingFunctions.entries.map((e) => ListTile(
+              title: Text(e.key),
+              leading: Radio<int Function(Quote, Quote)>(
+                key: UniqueKey(),
+                groupValue: sortMethod,
+                value: e.value,
+                onChanged: (f) => setState2(() => setState(() { if(f != null) sortMethod = f; })),
+              ),
+            )).toList(),
+          ],
+        ),
+      );
+    });
   }
 
   void beginSearch(){
