@@ -18,40 +18,55 @@ class MainMenu extends StatelessWidget {
       ),
       drawer: Drawer(
         elevation: 8.0,
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
+        child: SafeArea(
           child: Column(
             children: [
               SizedBox(
-                child: Column(
-                  children: [
-                    Text(settings.getString("username")!,
-                      style: Theme.of(context).textTheme.headline5
-                    ),
-                    Text(settings.getString("email")!),
-                    const SizedBox(height: 8.0,),
-                    Text(settings.getString("role")!)
-                  ],
+                width: double.infinity,
+                child: DrawerHeader(
+                  decoration: BoxDecoration(
+                    boxShadow: const [BoxShadow(blurRadius: 5.0)],
+                    color: settings.getString("role") == "admin" ? Colors.amber : Theme.of(context).colorScheme.background,
+                  ),
+                  child: Column(
+                    children: [
+                      Text(settings.getString("username")!,
+                        style: Theme.of(context).textTheme.headline5
+                      ),
+                      Text(settings.getString("email")!),
+                      const SizedBox(height: 8.0,),
+                      Text(settings.getString("role")!)
+                    ],
+                  ),
                 ),
               ),
-              Expanded( // Go to catalog
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, "/catalog");
-                  },
-                  child: const Text("Catalog"),
-                )
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    children: [
+                      Expanded( // Go to catalog
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, "/catalog");
+                          },
+                          child: const Text("Catalog"),
+                        )
+                      ),
+                      TextButton.icon(
+                        style: TextButton.styleFrom(
+                          primary: Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size.fromHeight(40.0),
+                          backgroundColor: Theme.of(context).colorScheme.primary),
+                        onPressed: () => logout(context),
+                        label: const Text("Logout"),
+                        icon: const Icon(Icons.logout),
+                      )
+                    ],
+                  ),
+                ),
               ),
-              TextButton.icon(
-                style: TextButton.styleFrom(
-                  primary: Theme.of(context).colorScheme.onPrimary,
-                  minimumSize: const Size.fromHeight(40.0),
-                  backgroundColor: Theme.of(context).colorScheme.primary),
-                onPressed: () => logout(context),
-                label: const Text("Logout"),
-                icon: const Icon(Icons.logout),
-              )
-            ],
+            ]
           ),
         ),
       ),
