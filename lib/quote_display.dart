@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'icon_font_icons.dart';
 
@@ -22,6 +23,16 @@ class QuoteDisplay extends StatelessWidget {
       appBar: AppBar(
         title: Text(quote != null ? "Quote" : "Random quote"),
         actions: [
+          IconButton(
+            onPressed: (){
+              Share.share(
+                "${quote?.text} -${quote?.originator.name}",
+                subject: "Hláška z Hláškomatu",
+                //sharePositionOrigin: // TODO: Implement for iPad users 
+              );
+            }, // TODO: Implement image sharing
+            icon: const Icon(Icons.share)
+          ),
           IconButton(
             onPressed: (){}, // TODO: Implement
             icon: const Icon(Icons.flag)
@@ -63,6 +74,7 @@ class QuoteDisplay extends StatelessWidget {
               )
             );
           },
+          tooltip: pending ? "Approve" : "Random quote",
           child: pending ? const Icon(Icons.check) : const Icon(IconFont.perspective_dice_three),
         ),
       ),
