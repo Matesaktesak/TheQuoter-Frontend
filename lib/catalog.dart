@@ -39,7 +39,7 @@ class _CatalogState extends State<Catalog> {
           ),
           IconButton(
             onPressed: (){
-              openFilter();
+              openFilter(context);
             },
             icon: const Icon(Icons.filter_alt),
           ),
@@ -70,9 +70,10 @@ class _CatalogState extends State<Catalog> {
                 itemCount: _quotes!.length,
                 itemBuilder: (context, index) {
                   final bool approveButton = _quotes![index].state != Status.public && widget.settings.getString("role") == "admin";
+                  final bool editButton = widget.settings.getString("role") == "admin";
                   final bool deleteButton = widget.settings.getString("role") == "admin";
 
-                  final double er = (approveButton ? 0.2 : 0) + (deleteButton ? 0.2 : 0);
+                  final double er = (approveButton ? 0.2 : 0) + (editButton ? 0.2 : 0) + (deleteButton ? 0.2 : 0);
 
                   return Card(
                     shape: const RoundedRectangleBorder(
@@ -84,7 +85,7 @@ class _CatalogState extends State<Catalog> {
                     elevation: 3,
                     child: Slidable(
                       closeOnScroll: true,
-                      endActionPane: ActionPane(
+                      endActionPane: er != 0 ? ActionPane(
                         extentRatio: er,
                         motion: const DrawerMotion(),
                         children: [
@@ -103,14 +104,38 @@ class _CatalogState extends State<Catalog> {
                             icon: Icons.check,
                             label: "OK",
                           ),
+                          if(editButton) SlidableAction(
+                            onPressed: (context){
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: widget.settings, isEdit: _quotes![index])));
+                            },
+                            backgroundColor: Colors.amber,
+                            foregroundColor: Colors.white,
+                            icon: Icons.edit,
+                            label: "Edit",
+                          ),
                           if(deleteButton) SlidableAction(
                             onPressed: (context){
-                              api.deleteQuote(
-                                token: widget.settings.getString("token")!,
-                                quote: _quotes![index]
-                              ).then((e){
-                                 setState(() => _quotes!.remove(_quotes![index]));  
-                              });
+                              showDialog(context: context, builder: (context) => AlertDialog(
+                                content: const Text("Really?"),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text("Nope"),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      api.deleteQuote(
+                                        token: widget.settings.getString("token")!,
+                                        quote: _quotes![index]
+                                      ).then((e){
+                                        setState(() => _quotes!.remove(_quotes![index]));  
+                                      });
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text("(Thanos snaps)")
+                                  )
+                                ],
+                              ));
                             },
                             backgroundColor: Colors.red,
                             foregroundColor: Colors.white,
@@ -118,7 +143,7 @@ class _CatalogState extends State<Catalog> {
                             label: "NOK",
                           ),
                         ],
-                      ),
+                      ) : null,
                       child: ListTile(
                         dense: true,
                         tileColor: _quotes![index].state == Status.public ? Colors.white : const Color.fromARGB(255, 255, 169, 169),
@@ -158,7 +183,7 @@ class _CatalogState extends State<Catalog> {
     );
   }
 
-  void openFilter(){
+  void openFilter(BuildContext context){
     // TODO: Implement
   }
 
