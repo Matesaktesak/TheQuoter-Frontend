@@ -228,12 +228,15 @@ class _CatalogState extends State<Catalog> {
                           child: DropdownButton<Person>(
                             hint: const Text("Originator"),
                             value: _filterTeacher,
-                            items: snapshot.data?.map((Person p) {
-                              return DropdownMenuItem(
-                                value: p,
-                                child: Text(p.name),
-                              );
-                            }).toList(),
+                            items: [
+                              const DropdownMenuItem(value: null, child: Text("Any"),),
+                              ...?snapshot.data?.map((Person p) {
+                                return DropdownMenuItem(
+                                  value: p,
+                                  child: Text(p.name),
+                                );
+                              }).toList()
+                            ],
                             onChanged: (Person? value) { // On value changed
                               if(value != null) { // If value is not null
                                 setState(() => setState2(() {
