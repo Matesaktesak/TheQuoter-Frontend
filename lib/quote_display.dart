@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'icon_font_icons.dart';
+import 'capture.dart';
 
 import 'main.dart';
 import 'models/quote.dart';
@@ -11,6 +14,8 @@ class QuoteDisplay extends StatelessWidget {
 
   Quote? quote;
   final dynamic future;
+
+  final _captureKey = GlobalKey<CaptureWidgetState>();
 
   QuoteDisplay({required this.settings, Key? key, this.future, this.quote}) : super(key: key);
 
@@ -24,7 +29,10 @@ class QuoteDisplay extends StatelessWidget {
         title: Text(quote != null ? "Quote" : "Random quote"),
         actions: [
           IconButton(
-            onPressed: (){
+            onPressed: () async {
+              final file = File("/home/matesaktesak/hlaskomat/thequoter_flutter_frontend/rendered.png");
+              _captureKey.currentState?.captureImage().then((image) => file.writeAsBytes(image.data)); 
+
               Share.share(
                 "${quote?.text} -${quote?.originator.name}",
                 subject: "Hláška z Hláškomatu",
@@ -50,7 +58,11 @@ class QuoteDisplay extends StatelessWidget {
               if(snapshot.data is List<Quote>?) quote = snapshot.data![0];
               if(snapshot.data is Quote) quote = snapshot.data;
 
-              return QuoteBlock(quote: quote!, quoteTextTheme: _quoteTextTheme);
+              return CaptureWidget(
+                key: _captureKey,
+                capture: QuoteBlock(quote: quote!, quoteTextTheme: _quoteTextTheme),
+                child: QuoteBlock(quote: quote!, quoteTextTheme: _quoteTextTheme),
+              );
             } else {
               return const Center(child: CircularProgressIndicator());
             }
@@ -60,7 +72,7 @@ class QuoteDisplay extends StatelessWidget {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 5.0),
         child: FloatingActionButton.large(
-          backgroundColor: pending ? Color.fromARGB(255, 58, 233, 58) : null,
+          backgroundColor: pending ? const Color.fromARGB(255, 58, 233, 58) : null,
           onPressed: () {
             // TODO: Implement approve
 
@@ -83,13 +95,13 @@ class QuoteDisplay extends StatelessWidget {
         elevation: 5.0,
         shape: const CircularNotchedRectangle(),
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 5),
+          padding: const EdgeInsets.symmetric(vertical: 5),
           child: Row(
             children: [
             Expanded(
               flex: 2,
               child: IconButton(
-                icon: Icon(Icons.edit),
+                icon: const Icon(Icons.edit),
                 tooltip: "Edit",
                 onPressed: (){}, // TODO: Implement
               ),
@@ -98,7 +110,7 @@ class QuoteDisplay extends StatelessWidget {
             Expanded(
               flex: 2,
               child: IconButton(
-                icon: Icon(Icons.delete),
+                icon: const Icon(Icons.delete),
                 tooltip: "Delete",
                 onPressed: (){}, // TODO: Implement
               ),
