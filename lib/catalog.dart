@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -65,7 +66,7 @@ class _CatalogState extends State<Catalog> {
               _quotes = snapshot.data!; // Assign the fetched quotes to the processed ones
 
               return ListView.separated(
-                controller: Platform.isWindows || Platform.isLinux ? AdjustableScrollController(20) : null,
+                controller: defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux ? AdjustableScrollController(20) : null, // Idiotic, but flutter hasn't implemeted Platform.isLinux for the web platform yet...
                 separatorBuilder: (context, index) => const SizedBox(height: 5,),
                 itemCount: _quotes!.length,
                 itemBuilder: (context, index) {
