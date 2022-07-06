@@ -13,4 +13,17 @@ class Person {
             type: json["type"],
         );
     }
+
+  @override
+  bool operator == (other){
+    return other is Person && id == other.id;
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, type);
+
+  @override
+  String toString() {
+    return "$name [$id]";
+  }
 }
