@@ -26,6 +26,7 @@ class _CatalogState extends State<Catalog> {
   Future<List<Quote>?>? _futureQuotes;
   List<Quote>? _quotes;
 
+  List<String>? _searchTerms;
 
   static final Map<String, int Function(Quote, Quote)> sortingFunctions = {
     "Default": <int>(a,b) => 0,
@@ -39,12 +40,14 @@ class _CatalogState extends State<Catalog> {
   Future<List<Person>>? _teachers;
   Person? _filterTeacher;
 
+  Widget _appBarContent = Text("Catalog");
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
-        title: const Text("Catalog"),
+        title: _appBarContent,
         actions: [
           IconButton(
             onPressed: (){
@@ -79,13 +82,27 @@ class _CatalogState extends State<Catalog> {
             } else if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
               _quotes = snapshot.data!; // Assign the fetched quotes to the processed ones
               
-              List<Quote>? filteredQuotes = _filterTeacher != null ? _quotes?.where((element) => element.originator == _filterTeacher).toList() : _quotes;
-              filteredQuotes?.sort(sortMethod);
+              List<Quote> filteredQuotes = (_filterTeacher != null ? _quotes?.where((element) => element.originator == _filterTeacher).toList() : _quotes) ?? List<Quote>.empty(growable: true);
+
+              if(_searchTerms != null) {
+                filteredQuotes = filteredQuotes.where((q) =>
+                  _searchTerms!.map((t) =>
+                    q.text.toLowerCase().contains(t)
+                    || (q.context?.toLowerCase().contains(t) ?? false)
+                    || (q.note?.toLowerCase().contains(t) ?? false)
+                    || (q.id == t)
+                    || (q.originator.name.toLowerCase().contains(t))
+                  ).where((element) => element).isNotEmpty
+                ).toList();
+              }
+
+              filteredQuotes.sort(sortMethod);
+
 
               return ListView.separated(
                 controller: defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux ? AdjustableScrollController(20) : null, // Idiotic, but flutter hasn't implemeted Platform.isLinux for the web platform yet...
                 separatorBuilder: (context, index) => const SizedBox(height: 5,),
-                itemCount: filteredQuotes!.length,
+                itemCount: filteredQuotes.length,
                 itemBuilder: (context, index) {
                   final bool approveButton = filteredQuotes[index].state != Status.public && widget.settings.getString("role") == "admin";
                   final bool editButton = widget.settings.getString("role") == "admin";
@@ -202,13 +219,10 @@ class _CatalogState extends State<Catalog> {
   }
 
   void openFilter(BuildContext context){
-    // TODO: Implement
-
     showModalBottomSheet(context: context, elevation: 8, builder: (context){
       _teachers = api.getTeachers();
 
       return StatefulBuilder(
-
         builder: (context, setState2) => Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
@@ -272,9 +286,29 @@ class _CatalogState extends State<Catalog> {
     });
   }
 
+  final _searchController = TextEditingController();
+
   void beginSearch(){
     // TODO: Implement
+
+    setState(() {
+      _appBarContent = Container(
+        padding: EdgeInsets.symmetric(horizontal: 4),
+        color: Colors.white,
+        child: TextField(
+          //cursorColor: Colors.white,
+          autofocus: true,
+          controller: _searchController,
+          onChanged: (text){
+            setState(() {
+              _searchTerms = _searchController.text.toLowerCase().trim().split(" ");
+            });
+          },
+        ),
+      );
+    });
   }
+
 
   void refresh(String token, String role) {
     setState(() {
