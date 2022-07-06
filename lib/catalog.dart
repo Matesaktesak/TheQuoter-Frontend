@@ -26,7 +26,6 @@ class _CatalogState extends State<Catalog> {
   Future<List<Quote>?>? _futureQuotes;
   List<Quote>? _quotes;
 
-  Person? filterTeacher;
 
   static final Map<String, int Function(Quote, Quote)> sortingFunctions = {
     "Default": <int>(a,b) => 0,
@@ -37,6 +36,8 @@ class _CatalogState extends State<Catalog> {
   };
 
   int Function(Quote a, Quote b)? sortMethod = sortingFunctions["Default"];
+  Future<List<Person>>? _teachers;
+  Person? _filterTeacher;
 
   @override
   Widget build(BuildContext context) {
@@ -78,14 +79,15 @@ class _CatalogState extends State<Catalog> {
             } else if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
               _quotes = snapshot.data!; // Assign the fetched quotes to the processed ones
               
-              _quotes?.sort(sortMethod);
+              List<Quote>? filteredQuotes = _filterTeacher != null ? _quotes?.where((element) => element.originator == _filterTeacher).toList() : _quotes;
+              filteredQuotes?.sort(sortMethod);
 
               return ListView.separated(
                 controller: defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux ? AdjustableScrollController(20) : null, // Idiotic, but flutter hasn't implemeted Platform.isLinux for the web platform yet...
                 separatorBuilder: (context, index) => const SizedBox(height: 5,),
-                itemCount: _quotes!.length,
+                itemCount: filteredQuotes!.length,
                 itemBuilder: (context, index) {
-                  final bool approveButton = _quotes![index].state != Status.public && widget.settings.getString("role") == "admin";
+                  final bool approveButton = filteredQuotes[index].state != Status.public && widget.settings.getString("role") == "admin";
                   final bool editButton = widget.settings.getString("role") == "admin";
                   final bool deleteButton = widget.settings.getString("role") == "admin";
 
@@ -109,7 +111,7 @@ class _CatalogState extends State<Catalog> {
                             onPressed: (context){
                               api.setStatusQuote(
                                 token: widget.settings.getString("token")!,
-                                quote: _quotes![index],
+                                quote: filteredQuotes[index],
                                 state: Status.public,
                               ).then((e){
                                  setState(() => refresh(widget.settings.getString("token")!, widget.settings.getString("role")!));  
@@ -122,7 +124,7 @@ class _CatalogState extends State<Catalog> {
                           ),
                           if(editButton) SlidableAction(
                             onPressed: (context){
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: widget.settings, isEdit: _quotes![index])));
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: widget.settings, isEdit: filteredQuotes[index])));
                             },
                             backgroundColor: Colors.amber,
                             foregroundColor: Colors.white,
@@ -142,9 +144,9 @@ class _CatalogState extends State<Catalog> {
                                     onPressed: () {
                                       api.deleteQuote(
                                         token: widget.settings.getString("token")!,
-                                        quote: _quotes![index]
+                                        quote: filteredQuotes[index]
                                       ).then((e){
-                                        setState(() => _quotes!.remove(_quotes![index]));  
+                                        setState(() => _quotes!.remove(filteredQuotes[index]));  
                                       });
                                       Navigator.pop(context);
                                     },
@@ -162,7 +164,7 @@ class _CatalogState extends State<Catalog> {
                       ) : null,
                       child: ListTile(
                         dense: true,
-                        tileColor: _quotes![index].state == Status.public ? Colors.white : const Color.fromARGB(255, 255, 169, 169),
+                        tileColor: filteredQuotes[index].state == Status.public ? Colors.white : const Color.fromARGB(255, 255, 169, 169),
                         shape: const RoundedRectangleBorder(
                           borderRadius: BorderRadius.only(
                           bottomLeft: Radius.circular(10.0),
@@ -171,19 +173,19 @@ class _CatalogState extends State<Catalog> {
                         )),
                         contentPadding: const EdgeInsets.fromLTRB(18.0, 6, 12.0, 12.0),
                         title: Text(
-                          "„${_quotes![index].text}\"",
+                          "„${filteredQuotes[index].text}\"",
                           style: _quoteTextTheme,
                         ),
                         subtitle: Text(
-                          "- ${_quotes![index].originator.name}",
+                          "- ${filteredQuotes[index].originator.name}",
                           style: Theme.of(context).textTheme.labelSmall,
                           textAlign: TextAlign.right,
                         ),
                         onTap: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteDisplay(settings: widget.settings, quote: _quotes![index])));
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteDisplay(settings: widget.settings, quote: filteredQuotes[index])));
                         },
                         onLongPress: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: widget.settings, isEdit: _quotes![index])));
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: widget.settings, isEdit: filteredQuotes[index])));
                         }
                      ),
                     ),
@@ -203,13 +205,55 @@ class _CatalogState extends State<Catalog> {
     // TODO: Implement
 
     showModalBottomSheet(context: context, elevation: 8, builder: (context){
+      _teachers = api.getTeachers();
+
       return StatefulBuilder(
 
         builder: (context, setState2) => Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             const Text("Filter"),
-            //FutureBuilder(builder: (context, snapshot){return Placeholder();}), // Teachers dropdown
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Row(
+                children: [
+                  const Icon(Icons.person),
+                  const SizedBox(width: 16.0,),
+                  FutureBuilder(
+                    future: _teachers,
+                    builder: (context, AsyncSnapshot<List<Person>> snapshot) {
+                      if (snapshot.connectionState == ConnectionState.done) {
+                        // If the API request has finnished
+                        return Expanded(
+                          child: DropdownButton<Person>(
+                            hint: const Text("Originator"),
+                            value: _filterTeacher,
+                            items: snapshot.data?.map((Person p) {
+                              return DropdownMenuItem(
+                                value: p,
+                                child: Text(p.name),
+                              );
+                            }).toList(),
+                            onChanged: (Person? value) { // On value changed
+                              if(value != null) { // If value is not null
+                                setState(() => setState2(() {
+                                  _filterTeacher = value;
+                                  //_filterTeacher = snapshot.data?.where((element) => element.id == value).first;
+                                }));
+                              }
+                            },
+                            //validator: (String? value) => value == null ? "Please select a class" : null,
+                          ),
+                        );
+                      } else {
+                        // If the future is still loading
+                        return const Expanded(child: Center(child: CircularProgressIndicator()));
+                      }
+                    },
+                  ),
+                  TextButton(onPressed: (){ setState(()=>setState2((()=> _filterTeacher = null)));}, child: const Text("Reset")),
+                ]),
+            ),
             
             const Text("Sort by:"),
       
