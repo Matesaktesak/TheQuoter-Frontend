@@ -15,10 +15,18 @@ class QuoteDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    bool pending = (quote?.state == Status.pending) && (settings.getString("role") == "admin");
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
-        title: const Text("Random quote"),
+        title: Text(quote != null ? "Quote" : "Random quote"),
+        actions: [
+          IconButton(
+            onPressed: (){}, // TODO: Implement
+            icon: const Icon(Icons.flag)
+          )
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -38,20 +46,54 @@ class QuoteDisplay extends StatelessWidget {
           }
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => QuoteDisplay(
-                settings: settings,
-                future: api.getRandomQuote(settings.getString("token")!),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 5.0),
+        child: FloatingActionButton.large(
+          backgroundColor: pending ? Color.fromARGB(255, 58, 233, 58) : null,
+          onPressed: () {
+            // TODO: Implement approve
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => QuoteDisplay(
+                  settings: settings,
+                  future: api.getRandomQuote(settings.getString("token")!),
+                )
               )
-            )
-          );
-        },
-        child: const Icon(IconFont.perspective_dice_three),
+            );
+          },
+          child: pending ? const Icon(Icons.check) : const Icon(IconFont.perspective_dice_three),
+        ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: settings.getString("role") == "admin" ? BottomAppBar(
+        elevation: 5.0,
+        shape: const CircularNotchedRectangle(),
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 5),
+          child: Row(
+            children: [
+            Expanded(
+              flex: 2,
+              child: IconButton(
+                icon: Icon(Icons.edit),
+                tooltip: "Edit",
+                onPressed: (){}, // TODO: Implement
+              ),
+            ),
+            const Expanded(flex: 1, child: SizedBox(width: 5,)),
+            Expanded(
+              flex: 2,
+              child: IconButton(
+                icon: Icon(Icons.delete),
+                tooltip: "Delete",
+                onPressed: (){}, // TODO: Implement
+              ),
+            ),
+          ]),
+        ),
+      ) : null,
     );
   }
 
@@ -114,7 +156,8 @@ class QuoteBlock extends StatelessWidget {
             )
           ),
           if(quote.note != null) Text(
-            quote.note!
+            quote.note!,
+            textAlign: TextAlign.center,
           ),
         ]
       )
