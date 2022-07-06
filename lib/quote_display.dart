@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'icon_font_icons.dart';
@@ -28,13 +30,24 @@ class QuoteDisplay extends StatelessWidget {
       appBar: AppBar(
         title: Text(quote != null ? "Quote" : "Random quote"),
         actions: [
-          IconButton(
+          // Quote Share button
+          if(defaultTargetPlatform != TargetPlatform.linux) IconButton( // Not awailable on Linux due to share_plus unimplemented .shareFiles
             onPressed: () async {
-              final file = File("/home/matesaktesak/hlaskomat/thequoter_flutter_frontend/rendered.png");
-              _captureKey.currentState?.captureImage().then((image) => file.writeAsBytes(image.data)); 
+              // Make a path to save the temporary image (share_plus can't share a bytebuffer AHHHHRR)
+              final path = "${ (await getTemporaryDirectory()).path }/${ quote?.id }.png";
+              
+              if(kDebugMode) print("Saving image to $path");
+              
+              final file = File(path); // Get the file
 
-              Share.share(
-                "${quote?.text} -${quote?.originator.name}",
+              // Make a png of the quote and render it to a file
+              final image = await _captureKey.currentState?.captureImage();
+              file.writeAsBytesSync(image!.data); // Would have to wait for it anyway
+
+              // Create the share prompt
+              Share.shareFiles(
+                [path],
+                text: "${quote?.text} -${quote?.originator.name}",
                 subject: "Hláška z Hláškomatu",
                 //sharePositionOrigin: // TODO: Implement for iPad users 
               );

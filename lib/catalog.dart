@@ -1,13 +1,14 @@
 import 'dart:math';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'main.dart';
 import 'models/quote.dart';
-
 import 'quote_create.dart';
 import 'quote_display.dart';
 
@@ -63,9 +64,9 @@ class _CatalogState extends State<Catalog> {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
               _quotes = snapshot.data!; // Assign the fetched quotes to the processed ones
-
+        
               return ListView.separated(
-                controller: Platform.isWindows || Platform.isLinux ? AdjustableScrollController(20) : null,
+                controller: defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux ? AdjustableScrollController(20) : null,
                 separatorBuilder: (context, index) => const SizedBox(height: 5,),
                 itemCount: _quotes!.length,
                 itemBuilder: (context, index) {
@@ -74,7 +75,7 @@ class _CatalogState extends State<Catalog> {
                   final bool deleteButton = widget.settings.getString("role") == "admin";
 
                   final double er = (approveButton ? 0.2 : 0) + (editButton ? 0.2 : 0) + (deleteButton ? 0.2 : 0);
-
+                  
                   return Card(
                     shape: const RoundedRectangleBorder(
                       borderRadius: BorderRadius.only(
