@@ -24,9 +24,7 @@ class _QuoteCreateState extends State<QuoteCreate> {
   final _quoteFormKey = GlobalKey<FormState>();
 
   Class? _class;
-  String? _classId = "";
   Person? _originator;
-  String? _originatorId;
 
   Future<QuoteActionResponse>? futureQuote;
   Future<List<Person>>? _teachers;
@@ -43,9 +41,7 @@ class _QuoteCreateState extends State<QuoteCreate> {
       _noteController.text = widget.isEdit?.note ?? "";
 
       _class = widget.isEdit?.clas;
-      _classId = widget.isEdit?.clas?.id;
       _originator = widget.isEdit?.originator;
-      _originatorId = widget.isEdit?.originator.id;
     }
 
     _teachers = api.getTeachers();
@@ -128,19 +124,16 @@ class _QuoteCreateState extends State<QuoteCreate> {
                         return Expanded(
                           child: DropdownButton(
                             hint: const Text("Originator*"),
-                            value: _originatorId,
+                            value: _originator,
                             items: snapshot.data?.map((Person p) {
                               return DropdownMenuItem(
-                                value: p.id,
+                                value: p,
                                 child: Text(p.name),
                               );
                             }).toList(),
-                            onChanged: (String? value) { // On value changed
+                            onChanged: (Person? value) { // On value changed
                               if(value != null) { // If value is not null
-                                setState(() {
-                                  _originatorId = value;
-                                  _originator = snapshot.data?.where((element) => element.id == value).first;
-                                });
+                                setState(() => _originator = value);
                               }
                             },
                             //validator: (String? value) => value == null ? "Please select a class" : null,
@@ -164,24 +157,21 @@ class _QuoteCreateState extends State<QuoteCreate> {
                         // If the API request has finnished
                         //print(snapshot.data?.where((element) => element == widget._class));
                         return Expanded(
-                          child: DropdownButton(
+                          child: DropdownButton<Class>(
                             hint: const Text("Class"),
-                            value: _classId,
+                            value: _class,
                             items:[
-                              const DropdownMenuItem(value: "", child: Text("No Class"),),
+                              const DropdownMenuItem(value: null, child: Text("No Class"),),
                               ...?snapshot.data?.map((Class c) {
                                 return DropdownMenuItem(
-                                  value: c.id,
+                                  value: c,
                                   child: Text(c.name),
                                 );
                               }).toList(),
                             ],
-                            onChanged: (String? value) { // On value changed
+                            onChanged: (Class? value) { // On value changed
                               if(value != null) { // If value is not null
-                                setState(() {
-                                  _classId = value;
-                                  _class = value != "" ? snapshot.data?.where((element) => element.id == value).first : null;
-                                });
+                                setState(() =>_class = value);
                               }
                             },
                             //validator: (String? value) => value == null ? "Please select a class" : null,
