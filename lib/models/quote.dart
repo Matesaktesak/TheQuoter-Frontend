@@ -46,4 +46,7 @@ class Quote {
       state: state,
     );
   }
+
+  @override
+  String toString() => "'$text' (by $originator) [$id]";
 }

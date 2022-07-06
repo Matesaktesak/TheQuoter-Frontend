@@ -8,9 +8,10 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'main.dart';
-import 'models/quote.dart';
 import 'quote_create.dart';
 import 'quote_display.dart';
+import 'models/quote.dart';
+import 'models/person.dart';
 
 class Catalog extends StatefulWidget {
   final SharedPreferences settings;
@@ -25,12 +26,28 @@ class _CatalogState extends State<Catalog> {
   Future<List<Quote>?>? _futureQuotes;
   List<Quote>? _quotes;
 
+  List<String>? _searchTerms;
+
+  static final Map<String, int Function(Quote, Quote)> sortingFunctions = {
+    "Default": <int>(a,b) => 0,
+    "Alphabeticaly": (a,b) => a.text.compareTo(b.text),
+    "Length": (a,b) => a.text.length.compareTo(b.text.length),
+    "Originator": (a,b) => a.originator.name.compareTo(b.originator.name),
+    "Random": <int>(a,b) => Random().nextInt(100) - 50,
+  };
+
+  int Function(Quote a, Quote b)? sortMethod = sortingFunctions["Default"];
+  Future<List<Person>>? _teachers;
+  Person? _filterTeacher;
+
+  Widget _appBarContent = Text("Catalog");
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
-        title: const Text("Catalog"),
+        title: _appBarContent,
         actions: [
           IconButton(
             onPressed: (){
@@ -64,13 +81,30 @@ class _CatalogState extends State<Catalog> {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
               _quotes = snapshot.data!; // Assign the fetched quotes to the processed ones
-        
+              
+              List<Quote> filteredQuotes = (_filterTeacher != null ? _quotes?.where((element) => element.originator == _filterTeacher).toList() : _quotes) ?? List<Quote>.empty(growable: true);
+
+              if(_searchTerms != null) {
+                filteredQuotes = filteredQuotes.where((q) =>
+                  _searchTerms!.map((t) =>
+                    q.text.toLowerCase().contains(t)
+                    || (q.context?.toLowerCase().contains(t) ?? false)
+                    || (q.note?.toLowerCase().contains(t) ?? false)
+                    || (q.id == t)
+                    || (q.originator.name.toLowerCase().contains(t))
+                  ).where((element) => element).isNotEmpty
+                ).toList();
+              }
+
+              filteredQuotes.sort(sortMethod);
+
+
               return ListView.separated(
-                controller: defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux ? AdjustableScrollController(20) : null,
+                controller: defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux ? AdjustableScrollController(20) : null, // Idiotic, but flutter hasn't implemeted Platform.isLinux for the web platform yet...
                 separatorBuilder: (context, index) => const SizedBox(height: 5,),
-                itemCount: _quotes!.length,
+                itemCount: filteredQuotes.length,
                 itemBuilder: (context, index) {
-                  final bool approveButton = _quotes![index].state != Status.public && widget.settings.getString("role") == "admin";
+                  final bool approveButton = filteredQuotes[index].state != Status.public && widget.settings.getString("role") == "admin";
                   final bool editButton = widget.settings.getString("role") == "admin";
                   final bool deleteButton = widget.settings.getString("role") == "admin";
 
@@ -94,7 +128,7 @@ class _CatalogState extends State<Catalog> {
                             onPressed: (context){
                               api.setStatusQuote(
                                 token: widget.settings.getString("token")!,
-                                quote: _quotes![index],
+                                quote: filteredQuotes[index],
                                 state: Status.public,
                               ).then((e){
                                  setState(() => refresh(widget.settings.getString("token")!, widget.settings.getString("role")!));  
@@ -107,7 +141,7 @@ class _CatalogState extends State<Catalog> {
                           ),
                           if(editButton) SlidableAction(
                             onPressed: (context){
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: widget.settings, isEdit: _quotes![index])));
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: widget.settings, isEdit: filteredQuotes[index])));
                             },
                             backgroundColor: Colors.amber,
                             foregroundColor: Colors.white,
@@ -127,9 +161,9 @@ class _CatalogState extends State<Catalog> {
                                     onPressed: () {
                                       api.deleteQuote(
                                         token: widget.settings.getString("token")!,
-                                        quote: _quotes![index]
+                                        quote: filteredQuotes[index]
                                       ).then((e){
-                                        setState(() => _quotes!.remove(_quotes![index]));  
+                                        setState(() => _quotes!.remove(filteredQuotes[index]));  
                                       });
                                       Navigator.pop(context);
                                     },
@@ -147,7 +181,7 @@ class _CatalogState extends State<Catalog> {
                       ) : null,
                       child: ListTile(
                         dense: true,
-                        tileColor: _quotes![index].state == Status.public ? Colors.white : const Color.fromARGB(255, 255, 169, 169),
+                        tileColor: filteredQuotes[index].state == Status.public ? Colors.white : const Color.fromARGB(255, 255, 169, 169),
                         shape: const RoundedRectangleBorder(
                           borderRadius: BorderRadius.only(
                           bottomLeft: Radius.circular(10.0),
@@ -156,19 +190,19 @@ class _CatalogState extends State<Catalog> {
                         )),
                         contentPadding: const EdgeInsets.fromLTRB(18.0, 6, 12.0, 12.0),
                         title: Text(
-                          "„${_quotes![index].text}\"",
+                          "„${filteredQuotes[index].text}\"",
                           style: _quoteTextTheme,
                         ),
                         subtitle: Text(
-                          "- ${_quotes![index].originator.name}",
+                          "- ${filteredQuotes[index].originator.name}",
                           style: Theme.of(context).textTheme.labelSmall,
                           textAlign: TextAlign.right,
                         ),
                         onTap: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteDisplay(settings: widget.settings, quote: _quotes![index])));
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteDisplay(settings: widget.settings, quote: filteredQuotes[index])));
                         },
                         onLongPress: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: widget.settings, isEdit: _quotes![index])));
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: widget.settings, isEdit: filteredQuotes[index])));
                         }
                      ),
                     ),
@@ -185,12 +219,99 @@ class _CatalogState extends State<Catalog> {
   }
 
   void openFilter(BuildContext context){
-    // TODO: Implement
+    showModalBottomSheet(context: context, elevation: 8, builder: (context){
+      _teachers = api.getTeachers();
+
+      return StatefulBuilder(
+        builder: (context, setState2) => Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            const Text("Filter"),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Row(
+                children: [
+                  const Icon(Icons.person),
+                  const SizedBox(width: 16.0,),
+                  FutureBuilder(
+                    future: _teachers,
+                    builder: (context, AsyncSnapshot<List<Person>> snapshot) {
+                      if (snapshot.connectionState == ConnectionState.done) {
+                        // If the API request has finnished
+                        return Expanded(
+                          child: DropdownButton<Person>(
+                            hint: const Text("Originator"),
+                            value: _filterTeacher,
+                            items: [
+                              const DropdownMenuItem(value: null, child: Text("Any"),),
+                              ...?snapshot.data?.map((Person p) {
+                                return DropdownMenuItem(
+                                  value: p,
+                                  child: Text(p.name),
+                                );
+                              }).toList()
+                            ],
+                            onChanged: (Person? value) { // On value changed
+                              if(value != null) { // If value is not null
+                                setState(() => setState2(() {
+                                  _filterTeacher = value;
+                                  //_filterTeacher = snapshot.data?.where((element) => element.id == value).first;
+                                }));
+                              }
+                            },
+                            //validator: (String? value) => value == null ? "Please select a class" : null,
+                          ),
+                        );
+                      } else {
+                        // If the future is still loading
+                        return const Expanded(child: Center(child: CircularProgressIndicator()));
+                      }
+                    },
+                  ),
+                  TextButton(onPressed: (){ setState(()=>setState2((()=> _filterTeacher = null)));}, child: const Text("Reset")),
+                ]),
+            ),
+            
+            const Text("Sort by:"),
+      
+            ...sortingFunctions.entries.map((e) => ListTile(
+              title: Text(e.key),
+              leading: Radio<int Function(Quote, Quote)>(
+                key: UniqueKey(),
+                groupValue: sortMethod,
+                value: e.value,
+                onChanged: (f) => setState2(() => setState(() { if(f != null) sortMethod = f; })),
+              ),
+            )).toList(),
+          ],
+        ),
+      );
+    });
   }
+
+  final _searchController = TextEditingController();
 
   void beginSearch(){
     // TODO: Implement
+
+    setState(() {
+      _appBarContent = Container(
+        padding: EdgeInsets.symmetric(horizontal: 4),
+        color: Colors.white,
+        child: TextField(
+          //cursorColor: Colors.white,
+          autofocus: true,
+          controller: _searchController,
+          onChanged: (text){
+            setState(() {
+              _searchTerms = _searchController.text.toLowerCase().trim().split(" ");
+            });
+          },
+        ),
+      );
+    });
   }
+
 
   void refresh(String token, String role) {
     setState(() {
