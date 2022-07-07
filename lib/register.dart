@@ -1,21 +1,25 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:thequoter_flutter_frontend/main.dart';
-import 'package:thequoter_flutter_frontend/models/class.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'main.dart';
+import 'api.dart';
+import 'models/class.dart';
 
 class Register extends StatefulWidget {
-  Map<String, String> appData;
-  String? _classId;
+  final SharedPreferences settings;
 
-  Register(this.appData, {Key? key}) : super(key: key);
+  const Register({required this.settings, Key? key}) : super(key: key);
 
   @override
   State<Register> createState() => _RegisterState();
 }
 
 class _RegisterState extends State<Register> {
+  String? _classId;
   final _registerFormKey = GlobalKey<FormState>();
 
-  Future<String?>? futureToken;
+  Future<UserStateResponse?>? futureUser;
   bool error = false;
 
   @override
@@ -56,8 +60,8 @@ class _RegisterState extends State<Register> {
                         if (snapshot.connectionState == ConnectionState.done) {
                           // If the API request has finnished
                           return DropdownButton(
-                            hint: Text("Class"),
-                            value: widget._classId,
+                            hint: const Text("Class"),
+                            value: _classId,
                             items: snapshot.data?.map((Class c) {
                               return DropdownMenuItem(
                                 value: c.id,
@@ -67,7 +71,7 @@ class _RegisterState extends State<Register> {
                             onChanged: (String? value) { // On value changed
                               if(value != null) { // If value is not null
                                 setState(() {
-                                  widget._classId = value;
+                                  _classId = value;
                                 });
                               }
                             },
@@ -124,17 +128,17 @@ class _RegisterState extends State<Register> {
                 height: 18.0,
               ),
               FutureBuilder(
-                future: futureToken,
-                builder: (context, AsyncSnapshot<String?> snapshot) {
+                future: futureUser,
+                builder: (context, AsyncSnapshot<UserStateResponse?> snapshot) {
                   if (snapshot.connectionState == ConnectionState.none) { // If the API request has not been made yet
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         ElevatedButton( // Show the register button
                           onPressed: () {
-                            print("Register button pressed");
+                            if(kDebugMode) print("Register button pressed");
                             setState(() {
-                              if(validate() && widget._classId != null) futureToken = api.register(_usernameController.text, _emailController.text, _passwordController.text, Class(id: widget._classId!));
+                              if(validate() && _classId != null) futureUser = api.register(_usernameController.text, _emailController.text, _passwordController.text, Class(id: _classId!));
                             });
                           },
                           child: const Text("Register"),
@@ -148,14 +152,18 @@ class _RegisterState extends State<Register> {
                   } else if (snapshot.connectionState == ConnectionState.waiting) { // If the API request is still loading
                     return const CircularProgressIndicator(); // Show a loading indicator
                   } else if (snapshot.connectionState == ConnectionState.done) { // If the API request has finnished
-                    if (snapshot.data != "" && snapshot.data != null) {         // And a token has been returned
-                      print("snapshot.data: ${snapshot.data}");
-                      widget.appData["username"] = _usernameController.text;      // Save the username
-                      widget.appData["jwt"] = snapshot.data!;                     // Save the token
+                    if (snapshot.data != null) {         // And a token has been returned
+                      if(kDebugMode) print("snapshot.data: ${snapshot.data}");
+
+                      widget.settings.setString("username", snapshot.data!.username);       // Save the username
+                      widget.settings.setString("token", snapshot.data!.token);             // Save the token
+                      widget.settings.setString("email", snapshot.data!.email);             // Save the token
+                      widget.settings.setString("id", snapshot.data!.id);                   // Save the token
+                      widget.settings.setString("role", snapshot.data!.role);             // Save the token
                       Future.microtask(() => Navigator.pushReplacementNamed(context, "/")); // Go to the main page
                     } else { // If the token is invalid
                       Future.microtask(() => setState(() {
-                        futureToken = null; // Reset the future token
+                        futureUser = null; // Reset the future token
                         error = true; // Show an error message
                       }));
                     }
@@ -183,23 +191,6 @@ class _RegisterState extends State<Register> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _passwordController2 = TextEditingController();
 
-/*   void register(appData, Class clas) async {
-    print("Register clicked!");
-    // TODO: Register functionality
-    if (!validate()) return;
-
-    String username = _usernameController.text;
-    String email = _emailController.text;
-    String password = _passwordController.text;
-
-    String token = await api.register(username, email, password, clas);
-
-    appData["username"] = username;
-    appData["jwt"] = token;
-
-    print("username: $username, email: $email, password: $password");
-  }
- */
   bool validate() {
     return _registerFormKey.currentState!.validate();
 

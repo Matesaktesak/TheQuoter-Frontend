@@ -11,8 +11,12 @@ class Class {
   }
 
   @override
-  String toString() {
-    // TODO: implement toString
-    return "Class[id: $id, name: $name]";
-  }
+  bool operator == (other) => other is Class && id == other.id;
+
+  @override
+  String toString() => "Class[id: $id, name: $name]";
+  
+  @override
+  int get hashCode => Object.hash(id, name);
+  
 }

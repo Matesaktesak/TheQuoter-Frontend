@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:thequoter_flutter_frontend/api.dart';
-import 'package:thequoter_flutter_frontend/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'api.dart';
+import 'main.dart';
 
 class Login extends StatefulWidget {
-  Map<String, String> appData;
+  final SharedPreferences settings;
 
-  Login(this.appData, {Key? key}) : super(key: key);
+  const Login({required this.settings, Key? key}) : super(key: key);
 
   @override
   State<Login> createState() => _LoginState();
@@ -14,14 +15,20 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   final _loginFormKey = GlobalKey<FormState>();
 
-  Future<String?>? futureToken;
+  Future<UserStateResponse?>? futureUser;
   bool error = false;
 
   @override
-  Widget build(BuildContext context) {
-    widget.appData["jwt"] = "";
+  void initState(){
+    super.initState();
+    _usernameController.text = widget.settings.getString("username") ?? "";
+  }
 
-    _usernameController.text = widget.appData["username"] ?? "";
+  @override
+  Widget build(BuildContext context) {
+    widget.settings.setString("token", ""); // Clear token (log out)
+
+    //_usernameController.text = widget.settings.getString("username") ?? "";
 
     return Scaffold(
       primary: true,
@@ -69,8 +76,8 @@ class _LoginState extends State<Login> {
                         height: 18.0,
                       ),
                       FutureBuilder(
-                        future: futureToken,
-                        builder: (context, AsyncSnapshot<String?> snapshot) {
+                        future: futureUser,
+                        builder: (context, AsyncSnapshot<UserStateResponse?> snapshot) {
                           if (snapshot.connectionState == ConnectionState.none) { // If the API request has not been made yet
                             return Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -79,7 +86,7 @@ class _LoginState extends State<Login> {
                                   // Show the login button
                                   onPressed: () {
                                     setState(() {
-                                      futureToken = api.login(
+                                      futureUser = api.login(
                                           _usernameController.text,
                                           _passwordController.text);
                                     });
@@ -95,13 +102,16 @@ class _LoginState extends State<Login> {
                           } else if (snapshot.connectionState == ConnectionState.waiting) { // If the API request is still loading
                             return const CircularProgressIndicator(); // Show a loading indicator
                           } else if (snapshot.connectionState == ConnectionState.done) { // If the API request has finnished
-                            if (snapshot.data != "" && snapshot.data != null) { // And a token has been returned
-                              widget.appData["username"] = _usernameController.text; // Save the username
-                              widget.appData["jwt"] = snapshot.data!; // Save the token
+                            if (snapshot.data != null) { // And a token has been returned
+                              widget.settings.setString("username", _usernameController.text); // Save the username
+                              widget.settings.setString("token", snapshot.data!.token); // Save the token
+                              widget.settings.setString("id", snapshot.data!.id);
+                              widget.settings.setString("role", snapshot.data!.role);
+                              widget.settings.setString("email", snapshot.data!.email);
                               Future.microtask(() => Navigator.pushReplacementNamed( context, "/")); // Go to the main page
                             } else { // If the token is invalid
                               Future.microtask(() => setState(() {
-                                futureToken = null; // Reset the future token
+                                futureUser = null; // Reset the future token
                                 error = true; // Show an error message
                               }));
                             }

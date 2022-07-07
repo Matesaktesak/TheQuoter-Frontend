@@ -1,27 +1,34 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thequoter_flutter_frontend/api.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'about.dart';
+import 'api.dart';
 
-import 'package:thequoter_flutter_frontend/catalog.dart';
-import 'package:thequoter_flutter_frontend/register.dart';
-import 'package:thequoter_flutter_frontend/login.dart';
-import 'package:thequoter_flutter_frontend/main_menu.dart';
+import 'catalog.dart';
+import 'quote_create.dart';
+import 'register.dart';
+import 'login.dart';
+import 'main_menu.dart';
 
 QuoterAPI api = QuoterAPI("madison.levicek.net", 8083);
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(TheQuoter());
+  
+  final SharedPreferences settings = await SharedPreferences.getInstance();
+  
+  runApp(TheQuoter(sharedPreferences: settings));
 }
 
 class TheQuoter extends StatefulWidget {
-  Map<String, String> appData = {"username": "", "jwt": ""};
+  final SharedPreferences sharedPreferences;
 
-  TheQuoter({Key? key}) : super(key: key);
+  TheQuoter({required this.sharedPreferences, Key? key}) : super(key: key);
 
   @override
   State<TheQuoter> createState() => _TheQuoterState();
 
-  ThemeData theme = ThemeData(
+  final ThemeData theme = ThemeData(
     disabledColor: const Color(0xFFC6D8D3),
     shadowColor: const Color(0xFF3A3335),
     colorScheme: const ColorScheme(
@@ -42,24 +49,33 @@ class TheQuoter extends StatefulWidget {
         headline1: TextStyle(fontSize: 72.0),
         caption: TextStyle(fontStyle: FontStyle.italic), // Quote text
         subtitle1: TextStyle(fontSize: 11.0)
-      ),
+    ),
+    listTileTheme: const ListTileThemeData(
+      tileColor: Colors.white,
+    )
   );
 }
 
 class _TheQuoterState extends State<TheQuoter> {
   @override
   Widget build(BuildContext context) {
+    if(kDebugMode) print("Existing token: ${widget.sharedPreferences.getString("token")}");
+
     return MaterialApp(
       title: "Hláškomat",
       theme: widget.theme,
       routes: {
-        "/": (context) => MainMenu(widget.appData),
-        "/login": (context) => Login(widget.appData),
-        "/register": (context) => Register(widget.appData),
-        "/catalog": (context) => Catalog(widget.appData),
-        //"/quoteDisplay": (context) => QuoteDisplay(),
+        "/": (context) => MainMenu(settings: widget.sharedPreferences),
+        "/login": (context) => Login(settings: widget.sharedPreferences),
+        "/register": (context) => Register(settings: widget.sharedPreferences),
+        "/catalog": (context) => Catalog(settings: widget.sharedPreferences),
+        "/quoteCreate": (context) => QuoteCreate(settings: widget.sharedPreferences),
+        "/about": (context) => AboutPage(settings: widget.sharedPreferences)
       },
-      initialRoute: "/login",
+
+      // Only show the login screen if no JWT is present
+      // TODO: Validate the JWT before showing the main menu
+      initialRoute: widget.sharedPreferences.getString("token") == "" || widget.sharedPreferences.getString("token") == null ? "/login" : "/",
     );
   }
 }

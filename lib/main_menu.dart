@@ -1,43 +1,73 @@
 import 'package:flutter/material.dart';
-import 'package:thequoter_flutter_frontend/icon_font_icons.dart';
-import 'package:thequoter_flutter_frontend/main.dart';
-import 'package:thequoter_flutter_frontend/quote_create.dart';
-import 'package:thequoter_flutter_frontend/quote_display.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'icon_font_icons.dart';
+import 'main.dart';
+import 'quote_display.dart';
 
 class MainMenu extends StatelessWidget {
-  Map<String, String> appData;
-  MainMenu(this.appData, {Key? key}) : super(key: key);
+  final SharedPreferences settings;
+
+  const MainMenu({required this.settings, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         title: const Text("Hláškomat"),
       ),
       drawer: Drawer(
         elevation: 8.0,
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
+        child: SafeArea(
           child: Column(
             children: [
-              Expanded( // Go to catalog
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, "/catalog");
-                  },
-                  child: const Text("Catalog"),
-                )
+              SizedBox(
+                width: double.infinity,
+                child: DrawerHeader(
+                  decoration: BoxDecoration(
+                    boxShadow: const [BoxShadow(blurRadius: 5.0)],
+                    color: settings.getString("role") == "admin" ? Colors.amber : Theme.of(context).colorScheme.background,
+                  ),
+                  child: Column(
+                    children: [
+                      Text(settings.getString("username")!,
+                        style: Theme.of(context).textTheme.headline5
+                      ),
+                      Text(settings.getString("email")!),
+                      const SizedBox(height: 8.0,),
+                      Text(settings.getString("role")!)
+                    ],
+                  ),
+                ),
               ),
-              TextButton.icon(
-                style: TextButton.styleFrom(
-                  primary: Theme.of(context).colorScheme.onPrimary,
-                  minimumSize: const Size.fromHeight(40.0),
-                  backgroundColor: Theme.of(context).colorScheme.primary),
-                onPressed: () => logout(context),
-                label: const Text("Logout"),
-                icon: const Icon(Icons.logout),
-              )
-            ],
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    children: [
+                      Expanded( // Go to catalog
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, "/catalog");
+                          },
+                          child: const Text("Catalog"),
+                        )
+                      ),
+                      TextButton.icon(
+                        style: TextButton.styleFrom(
+                          primary: Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size.fromHeight(40.0),
+                          backgroundColor: Theme.of(context).colorScheme.primary),
+                        onPressed: () => logout(context),
+                        label: const Text("Logout"),
+                        icon: const Icon(Icons.logout),
+                      ),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, "/about"), child: Text("About")),
+                    ],
+                  ),
+                ),
+              ),
+            ]
           ),
         ),
       ),
@@ -54,8 +84,8 @@ class MainMenu extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => QuoteDisplay(
-                      appData: appData,
-                      quote: api.getRandomQuote(appData["jwt"]!),
+                      settings: settings,
+                      future: api.getRandomQuote(settings.getString("token")!),
                     )
                   )
                 );
@@ -63,14 +93,11 @@ class MainMenu extends StatelessWidget {
             ),
             MenuButton(text: "Quote of the day", icon: Icons.format_quote, onPressed: () => ""),
             MenuButton(text: "Catalog", icon: IconFont.inbox, onPressed: () => Navigator.pushNamed(context, "/catalog")),
-            SizedBox(height: 40), // TODO: remove
+            const SizedBox(height: 40), // TODO: remove
             MenuButton(
               text: "Create quote",
               icon: Icons.add,
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => QuoteCreate(appData)),
-              )
+              onPressed: () => Navigator.pushNamed(context, "/quoteCreate", )
             )
           ],
         ),

@@ -1,17 +1,20 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:thequoter_flutter_frontend/main.dart';
-import 'package:thequoter_flutter_frontend/models/class.dart';
-import 'package:thequoter_flutter_frontend/models/person.dart';
-import 'package:thequoter_flutter_frontend/quote_display.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'api.dart';
+import 'main.dart';
+import 'models/class.dart';
+import 'models/person.dart';
+import 'quote_display.dart';
+
+import 'models/quote.dart';
 
 class QuoteCreate extends StatefulWidget {
-  Map<String, String> appData;
-  Class? _class;
-  String? _classId = "";
-  Person? _originator;
-  String? _originatorId;
+  final SharedPreferences settings;
 
-  QuoteCreate(this.appData, {Key? key}) : super(key: key);
+  final Quote? isEdit;
+
+  const QuoteCreate({required this.settings, this.isEdit, Key? key}) : super(key: key);
 
   @override
   State<QuoteCreate> createState() => _QuoteCreateState();
@@ -20,15 +23,39 @@ class QuoteCreate extends StatefulWidget {
 class _QuoteCreateState extends State<QuoteCreate> {
   final _quoteFormKey = GlobalKey<FormState>();
 
-  Future<String?>? futureQuoteId;
+  Class? _class;
+  Person? _originator;
+
+  Future<QuoteActionResponse>? futureQuote;
+  Future<List<Person>>? _teachers;
+  Future<List<Class>>? _classes;
   bool error = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if(widget.isEdit != null){
+      _textController.text = widget.isEdit?.text ?? "";
+      _contextController.text = widget.isEdit?.context ?? "";
+      _noteController.text = widget.isEdit?.note ?? "";
+
+      _class = widget.isEdit?.clas;
+      _originator = widget.isEdit?.originator;
+    }
+
+    _teachers = api.getTeachers();
+    _classes = api.getClasses();
+  }
+
+  num _textCounter = 0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       primary: true,
       appBar: AppBar(
-        title: const Text("Create new Quote"),
+        title: widget.isEdit == null ? const Text("Create new Quote") : const Text("Edit Quote"),
         backgroundColor: Theme.of(context).colorScheme.primary,
       ),
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -44,16 +71,25 @@ class _QuoteCreateState extends State<QuoteCreate> {
                 maxLines: 10,
                 minLines: 3,
                 //expands: true,
-                decoration: const InputDecoration(
-                  icon: Icon(Icons.textsms),
+                decoration: InputDecoration(
+                  icon: const Icon(Icons.textsms),
                   labelText: "Quote text*",
                   hintText: "He said she said",
                   helperText: "Enter what the person said",
-                  //counterText: // TODO: Make the counter
+                  counterText: "$_textCounter / 400"
                 ),
                 autofocus: true,
                 controller: _textController,
-                validator: (val) => val!.isEmpty ? "This field is required" : null,
+                validator: (val) {
+                  if(val!.isEmpty) return "This field is required";
+                  if(val.length > 400) return "Text too long - max 400";
+                  return null; 
+                },
+                onChanged: (val){
+                  setState(() {
+                    _textCounter = _textController.text.length;
+                  });
+                },
               ),
               const SizedBox(height:18.0), // Spacer
               TextFormField(
@@ -81,26 +117,23 @@ class _QuoteCreateState extends State<QuoteCreate> {
                   const Icon(Icons.person),
                   const SizedBox(width: 16.0,),
                   FutureBuilder(
-                    future: api.getTeachers(),
+                    future: _teachers,
                     builder: (context, AsyncSnapshot<List<Person>> snapshot) {
                       if (snapshot.connectionState == ConnectionState.done) {
                         // If the API request has finnished
                         return Expanded(
                           child: DropdownButton(
                             hint: const Text("Originator*"),
-                            value: widget._originatorId,
+                            value: _originator,
                             items: snapshot.data?.map((Person p) {
                               return DropdownMenuItem(
-                                value: p.id,
+                                value: p,
                                 child: Text(p.name),
                               );
                             }).toList(),
-                            onChanged: (String? value) { // On value changed
+                            onChanged: (Person? value) { // On value changed
                               if(value != null) { // If value is not null
-                                setState(() {
-                                  widget._originatorId = value;
-                                  widget._originator = snapshot.data?.where((element) => element.id == value).first;
-                                });
+                                setState(() => _originator = value);
                               }
                             },
                             //validator: (String? value) => value == null ? "Please select a class" : null,
@@ -118,31 +151,27 @@ class _QuoteCreateState extends State<QuoteCreate> {
                   const Icon(Icons.group),
                   const SizedBox(width: 16.0,),
                   FutureBuilder(
-                    future: api.getClasses(),
+                    future: _classes,
                     builder: (context, AsyncSnapshot<List<Class>> snapshot) {
                       if (snapshot.connectionState == ConnectionState.done) {
                         // If the API request has finnished
-
                         //print(snapshot.data?.where((element) => element == widget._class));
                         return Expanded(
-                          child: DropdownButton(
+                          child: DropdownButton<Class>(
                             hint: const Text("Class"),
-                            value: widget._classId,
+                            value: _class,
                             items:[
-                              const DropdownMenuItem(value: "", child: Text("No Class"),),
+                              const DropdownMenuItem(value: null, child: Text("No Class"),),
                               ...?snapshot.data?.map((Class c) {
                                 return DropdownMenuItem(
-                                  value: c.id,
+                                  value: c,
                                   child: Text(c.name),
                                 );
                               }).toList(),
                             ],
-                            onChanged: (String? value) { // On value changed
+                            onChanged: (Class? value) { // On value changed
                               if(value != null) { // If value is not null
-                                setState(() {
-                                  widget._classId = value;
-                                  widget._class = value != "" ? snapshot.data?.where((element) => element.id == value).first : null;
-                                });
+                                setState(() =>_class = value);
                               }
                             },
                             //validator: (String? value) => value == null ? "Please select a class" : null,
@@ -160,29 +189,50 @@ class _QuoteCreateState extends State<QuoteCreate> {
                 height: 18.0,
               ),
               FutureBuilder(
-                future: futureQuoteId,
-                builder: (context, AsyncSnapshot<String?> snapshot) {
+                future: futureQuote,
+                builder: (context, AsyncSnapshot<QuoteActionResponse?> snapshot) {
                   if (snapshot.connectionState == ConnectionState.none) { // If the API request has not been made yet
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         ElevatedButton( // Show the register button
-                          onPressed: () {
-                            print("Create button pressed");
+                          onPressed: () async {
+                            if(kDebugMode) print("Create button pressed");
+
+                            final token = widget.settings.getString("token");
+
                             setState(() {
-                              if(validate() && widget._originator != null){
-                                futureQuoteId = api.createQuote(
-                                  widget.appData["jwt"]!,
-                                  originator: widget._originator!,
-                                  text: _textController.text,
-                                  context: _contextController.text,
-                                  note: _noteController.text,
-                                  clas: widget._class
+                              if(validate() && _originator != null){
+                                if(widget.isEdit == null) {
+                                  if(kDebugMode) print("Sending create request");
+                                  futureQuote = api.createQuote(
+                                    token: token!,
+                                    originator: _originator!,
+                                    text: _textController.text,
+                                    context: _contextController.text,
+                                    note: _noteController.text,
+                                    clas: _class
+                                  );
+                                }
+
+                                if(widget.isEdit != null) {
+                                  if(kDebugMode) print("Sending edit request");
+                                  futureQuote = api.editQuote(
+                                    token: token!,
+                                    quote: Quote(
+                                      id: widget.isEdit!.id,
+                                      originator: _originator!,
+                                      text: _textController.text,
+                                      context: _contextController.text,
+                                      note: _noteController.text,
+                                      clas: _class
+                                    ),
                                 );
+                                }
                               }
                             });
                           },
-                          child: const Text("Submit"),
+                          child: widget.isEdit == null ? const  Text("Submit") : const Text("Update"),
                         ),
                         if (error) const Padding( // Show error message
                           padding: EdgeInsets.only(left: 8.0),
@@ -191,21 +241,57 @@ class _QuoteCreateState extends State<QuoteCreate> {
                       ],
                     );
                   } else if (snapshot.connectionState == ConnectionState.waiting) { // If the API request is still loading
-                    return const CircularProgressIndicator(); // Show a loading indicator
+                    return const CircularProgressIndicator();                     // Show a loading indicator
                   } else if (snapshot.connectionState == ConnectionState.done) { // If the API request has finnished
-                    if (snapshot.data != "" && snapshot.data != null) {         // And a token has been returned
-                      print("snapshot.data: ${snapshot.data}");
-                      Future.microtask(() => Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => QuoteDisplay(
-                            quote: api.getQuote(widget.appData["jwt"]!, text: _textController.text),
-                            appData: widget.appData
-                          ))
-                      )); // Go to the main page
+                    if (snapshot.data != null) {
+                      if(snapshot.data!.statusCode == 201 || snapshot.data!.statusCode == 204){  // And a response has been received
+                        if(kDebugMode) print("The action has been sucesfull");
+                       
+                        Future.microtask(() {
+                          setState(() {
+                            _textController.clear();                                 // Clear the text field
+                            _contextController.clear();                              // Clear the context field
+                            _noteController.clear();         // Clear the note field
+                            futureQuote = null;
+                          });
+
+                          if(widget.isEdit == null) {
+                            Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => QuoteDisplay(
+                                future: api.getQuote(widget.settings.getString("token")!, id: snapshot.data!.id),
+                                settings: widget.settings,
+                              ))
+                            );
+                          } else {
+                            Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => QuoteDisplay(
+                                future: api.getQuote(widget.settings.getString("token")!, id: snapshot.data!.id),
+                                settings: widget.settings,
+                              ))
+                            );
+                          }
+                        });
+                      } else if(snapshot.data!.statusCode == 202) {
+                        if(kDebugMode) print("The action has been sucesfull, but is pending for approval...");
+                        
+                        return Column(
+                          children: [
+                            const Text("The quote has been accepted and is pending approval"),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pushReplacementNamed(context, "/quoteCreate"),
+                              child: const Text("Create another quote"),
+                            ),
+                          ],
+                        );
+                      }
+                      if(kDebugMode) print("This should never happen");
                     } else { // If the token is invalid
                       Future.microtask(() => setState(() {
-                        futureQuoteId = null; // Reset the future token
+                        futureQuote = null; // Reset the future token
                         error = true; // Show an error message
                       }));
                     }
@@ -218,6 +304,7 @@ class _QuoteCreateState extends State<QuoteCreate> {
                     );
                   }
 
+                  if(kDebugMode) print("This should never happen");
                   return Container();
                 },
               )
