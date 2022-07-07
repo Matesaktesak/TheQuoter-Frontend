@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'icon_font_icons.dart';
@@ -16,10 +17,11 @@ class QuoteDisplay extends StatelessWidget {
 
   Quote? quote;
   final dynamic future;
-
   final _captureKey = GlobalKey<CaptureWidgetState>();
 
-  QuoteDisplay({required this.settings, Key? key, this.future, this.quote}) : super(key: key);
+  QuoteDisplay({Key? key, required this.settings, this.future, this.quote}) : super(key: key) {
+    if(future == null && quote == null) throw Exception("At least one parameter has to be supplied!");
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,20 +67,21 @@ class QuoteDisplay extends StatelessWidget {
         child: FutureBuilder(
           future: future,
           builder: (context, AsyncSnapshot<dynamic> snapshot) {
-            if(snapshot.connectionState == ConnectionState.none && quote != null) return QuoteBlock(quote: quote!, quoteTextTheme: _quoteTextTheme,);
 
+            // If a future quote was supplied instead of a quote
             if(snapshot.hasData && snapshot.connectionState == ConnectionState.done) {
+              // Retrieve the quote (if it was a list (?!) take the first one)
               if(snapshot.data is List<Quote>?) quote = snapshot.data![0];
               if(snapshot.data is Quote) quote = snapshot.data;
-
-              return CaptureWidget(
-                key: _captureKey,
-                capture: QuoteBlock(quote: quote!, quoteTextTheme: _quoteTextTheme),
-                child: QuoteBlock(quote: quote!, quoteTextTheme: _quoteTextTheme),
-              );
-            } else {
-              return const Center(child: CircularProgressIndicator());
             }
+
+            // If no future quote was supplied a reademy-made quote must have been, so just run with it
+            return quote != null ? CaptureWidget(
+              key: _captureKey,
+              capture: StandaloneQuoteBlock(quote: quote!, quoteTextTheme: _quoteTextTheme,), // TODO: Important: Fix wrong image size
+              child: Center(child: QuoteBlock(quote: quote!, quoteTextTheme: _quoteTextTheme,)),
+              //child: Transform.scale(scale: 0.75, child: StandaloneQuoteBlock(quote: quote!, quoteTextTheme: _quoteTextTheme)),
+            ) : const Center(child: CircularProgressIndicator());
           }
         ),
       ),
@@ -107,28 +110,42 @@ class QuoteDisplay extends StatelessWidget {
       bottomNavigationBar: settings.getString("role") == "admin" ? BottomAppBar(
         elevation: 5.0,
         shape: const CircularNotchedRectangle(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 5),
-          child: Row(
-            children: [
-            Expanded(
-              flex: 2,
-              child: IconButton(
-                icon: const Icon(Icons.edit),
-                tooltip: "Edit",
-                onPressed: (){}, // TODO: Implement
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                Colors.green,
+                Colors.white,
+                Colors.white,
+                Colors.red
+              ]
+            )
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Row(
+              children: [
+              Expanded(
+                flex: 2,
+                child: IconButton(
+                  icon: const Icon(Icons.edit),
+                  tooltip: "Edit",
+                  onPressed: (){}, // TODO: Implement
+                ),
               ),
-            ),
-            const Expanded(flex: 1, child: SizedBox(width: 5,)),
-            Expanded(
-              flex: 2,
-              child: IconButton(
-                icon: const Icon(Icons.delete),
-                tooltip: "Delete",
-                onPressed: (){}, // TODO: Implement
+              const Expanded(flex: 1, child: SizedBox(width: 5,)),
+              Expanded(
+                flex: 2,
+                child: IconButton(
+                  icon: const Icon(Icons.delete),
+                  tooltip: "Delete",
+                  onPressed: (){}, // TODO: Implement
+                ),
               ),
-            ),
-          ]),
+            ]),
+          ),
         ),
       ) : null,
     );
@@ -155,9 +172,23 @@ class QuoteBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    String displayText = quote.text;
+
+    // Custom word wraping after 25 characters
+    int lastIndex = 0;
+    for(int i = 0; i < displayText.length; i++){
+      if(displayText[i] == "\n") lastIndex = i;
+      if(i - lastIndex >= 23 && displayText[i] == ' ') {
+        displayText = displayText.replaceRange(i, i, "\n");
+        lastIndex = i;
+      }
+    }
+
+    return FittedBox(
+      fit: BoxFit.contain,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        //crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if(quote.context != null) Padding(
             padding: const EdgeInsets.only(left: 8.0),
@@ -179,9 +210,10 @@ class QuoteBlock extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    "„${quote.text}”",
+                    "„$displayText”",
                     style: _quoteTextTheme,
                     textAlign: TextAlign.left,
+                    maxLines: 4,
                   ),
                   Text(
                     "- ${quote.originator.name}",
@@ -192,12 +224,85 @@ class QuoteBlock extends StatelessWidget {
               ),
             )
           ),
-          if(quote.note != null) Text(
-            quote.note!,
-            textAlign: TextAlign.center,
-          ),
+          if(quote.note != null) Text("(${quote.note!})"),
         ]
       )
     );
   }
+}
+
+class StandaloneQuoteBlock extends StatelessWidget{
+  final Quote quote;
+  final TextStyle quoteTextTheme;
+
+  const StandaloneQuoteBlock({Key? key, required this.quote, required this.quoteTextTheme}) : super(key: key);
+  
+  @override
+  Widget build(BuildContext context){
+    return Material(
+      child: SizedBox(
+        width: 1080,
+        height: 1350,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.background,
+            border: Border.all(color: Colors.red, )
+          ),
+          child: Stack(
+            children: [
+            const Align(
+              alignment: Alignment(0.9,0.85),
+              child:Text("(C)2022", style: TextStyle(
+                color: Color(0x33000000),
+                fontSize: 15
+              ))
+            ),
+            Align(
+              alignment: Alignment.bottomRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Image.asset(
+                    "assets/icon/icon.png",
+                    width: 80,
+                    opacity: const AlwaysStoppedAnimation(0.25),
+                  ),
+                  const Text(
+                    "Hláškomat",
+                    style: TextStyle(
+                      shadows: [Shadow(blurRadius: 2, color: Color(0x22000000), offset: Offset(2, 2)),],
+                      fontSize: 60.0,
+                      fontWeight: FontWeight.bold,
+                      color: Color.fromARGB(49, 167, 32, 77),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                  child:
+                  QuoteBlock(quote: quote, quoteTextTheme: quoteTextTheme,),
+                ),
+              ),
+              QrImage(
+                data: "http://${api.serverAddress}:${api.serverPort}/quotes/${quote.id}",
+                gapless: true,
+                size: 300,
+                eyeStyle: QrEyeStyle(color: Theme.of(context).colorScheme.primary, eyeShape: QrEyeShape.square),
+                dataModuleStyle: QrDataModuleStyle(color: Theme.of(context).colorScheme.onBackground, dataModuleShape: QrDataModuleShape.square),
+                semanticsLabel: "Qr Code pointing to the quote on the web",
+              ),
+              SizedBox(width: 300, child: Text("http://${api.serverAddress}:${api.serverPort}/quotes/${quote.id}", textAlign: TextAlign.center,)),
+              const SizedBox(height: 55,)
+            ]),
+          ]),
+        ),
+      ),
+    );
+  }
+
 }
