@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hlaskomat/quoteDeleteDialog.dart';
+import 'package:hlaskomat/quote_delete_dialog.dart';
 import 'package:hlaskomat/quote_create.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'icon_font_icons.dart';
@@ -53,17 +53,35 @@ class QuoteDisplay extends StatelessWidget {
         child: FloatingActionButton.large(
           backgroundColor: pending ? const Color.fromARGB(255, 58, 233, 58) : null,
           onPressed: () {
-            // TODO: Implement approve
-
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => QuoteDisplay(
-                  settings: settings,
-                  future: api.getRandomQuote(settings.getString("token")!),
+            if(pending){
+              api.setStatusQuote(
+                token: settings.getString("token")!,
+                quote: quote!,
+                state: Status.public,
+              ).then((e){
+                Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: ((context) =>
+                    QuoteDisplay(
+                      settings: settings,
+                      future: api.getQuote(
+                        settings.getString("token")!,
+                        id: quote!.id)
+                      )
+                    )
+                  )
+                );
+              });
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => QuoteDisplay(
+                    settings: settings,
+                    future: api.getRandomQuote(settings.getString("token")!),
+                  )
                 )
-              )
-            );
+              );
+            }
           },
           child: pending ? const Icon(Icons.check) : const Icon(IconFont.perspective_dice_three),
         ),
@@ -90,6 +108,7 @@ class QuoteDisplay extends StatelessWidget {
               Expanded( // Delete button
                 flex: 2,
                 child: IconButton(
+                  color: Colors.red,
                   icon: const Icon(Icons.delete),
                   tooltip: "Delete",
                   onPressed: (){
@@ -105,6 +124,7 @@ class QuoteDisplay extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: IconButton(
+                  color: Colors.green,
                   icon: const Icon(Icons.arrow_upward),
                   tooltip: "Upvote",
                   onPressed: (){}, // TODO: Implement
@@ -114,6 +134,7 @@ class QuoteDisplay extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: IconButton(
+                  color: Colors.red,
                   icon: const Icon(Icons.arrow_downward),
                   tooltip: "Downvote",
                   onPressed: (){}, // TODO: Implement
@@ -157,32 +178,35 @@ class QuoteBlock extends StatelessWidget {
               quote.context!
             ),
           ),
-          Card(
-            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(10.0),
-              topLeft: Radius.circular(10.0),
-              topRight: Radius.circular(10.0),
-            )),
-            elevation: 3,
-            color: const Color(0xFFFFFFFF),
-            child: Padding(
-              padding: const EdgeInsets.all(18.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    "„${quote.text}”",
-                    style: _quoteTextTheme,
-                    textAlign: TextAlign.left,
-                  ),
-                  Text(
-                    "- ${quote.originator.name}",
-                    textAlign: TextAlign.right,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(color: const Color(0xFF222222)),
-                  )
-                ],
-              ),
-            )
+          Hero(
+            tag: quote.id,
+            child: Card(
+              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(10.0),
+                topLeft: Radius.circular(10.0),
+                topRight: Radius.circular(10.0),
+              )),
+              elevation: 3,
+              color: const Color(0xFFFFFFFF),
+              child: Padding(
+                padding: const EdgeInsets.all(18.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      "„${quote.text}”",
+                      style: _quoteTextTheme,
+                      textAlign: TextAlign.left,
+                    ),
+                    Text(
+                      "- ${quote.originator.name}",
+                      textAlign: TextAlign.right,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(color: const Color(0xFF222222)),
+                    )
+                  ],
+                ),
+              )
+            ),
           ),
           if(quote.note != null) Text(
             quote.note!,

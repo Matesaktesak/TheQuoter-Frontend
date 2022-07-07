@@ -1,11 +1,10 @@
 import 'dart:math';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:hlaskomat/quoteDeleteDialog.dart';
+import 'package:hlaskomat/quote_delete_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'main.dart';
@@ -30,7 +29,7 @@ class _CatalogState extends State<Catalog> {
   List<String>? _searchTerms;
 
   static final Map<String, int Function(Quote, Quote)> sortingFunctions = {
-    "Default": <int>(a,b) => 0,
+    "Default": <int>(a,b) => 1,
     "Alphabeticaly": (a,b) => a.text.compareTo(b.text),
     "Length": (a,b) => a.text.length.compareTo(b.text.length),
     "Originator": (a,b) => a.originator.name.compareTo(b.originator.name),
@@ -71,134 +70,136 @@ class _CatalogState extends State<Catalog> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        child: FutureBuilder(
-          future: _futureQuotes,
-          builder: (context, AsyncSnapshot<List<Quote>?> snapshot) {
-            if(snapshot.connectionState == ConnectionState.none){
-              Future.microtask(() => refresh(widget.settings.getString("token")!, widget.settings.getString("role")!));
-            } else if(snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-              _quotes = snapshot.data!; // Assign the fetched quotes to the processed ones
-              
-              List<Quote> filteredQuotes = (_filterTeacher != null ? _quotes?.where((element) => element.originator == _filterTeacher).toList() : _quotes) ?? List<Quote>.empty(growable: true);
+      body: FutureBuilder(
+        future: _futureQuotes,
+        builder: (context, AsyncSnapshot<List<Quote>?> snapshot) {
+          if(snapshot.connectionState == ConnectionState.none){
+            Future.microtask(() => refresh(widget.settings.getString("token")!, widget.settings.getString("role")!));
+          } else if(snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+            _quotes = snapshot.data!; // Assign the fetched quotes to the processed ones
+            
+            List<Quote> filteredQuotes = (_filterTeacher != null ? _quotes?.where((element) => element.originator == _filterTeacher).toList() : _quotes) ?? List<Quote>.empty(growable: true);
 
-              if(_searchTerms != null) {
-                filteredQuotes = filteredQuotes.where((q) =>
-                  _searchTerms!.map((t) =>
-                    q.text.toLowerCase().contains(t)
-                    || (q.context?.toLowerCase().contains(t) ?? false)
-                    || (q.note?.toLowerCase().contains(t) ?? false)
-                    || (q.id == t)
-                    || (q.originator.name.toLowerCase().contains(t))
-                  ).where((element) => element).isNotEmpty
-                ).toList();
-              }
-
-              filteredQuotes.sort(sortMethod);
-
-
-              return ListView.separated(
-                controller: defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux ? AdjustableScrollController(20) : null, // Idiotic, but flutter hasn't implemeted Platform.isLinux for the web platform yet...
-                separatorBuilder: (context, index) => const SizedBox(height: 5,),
-                itemCount: filteredQuotes.length,
-                itemBuilder: (context, index) {
-                  final bool approveButton = filteredQuotes[index].state != Status.public && widget.settings.getString("role") == "admin";
-                  final bool editButton = widget.settings.getString("role") == "admin";
-                  final bool deleteButton = widget.settings.getString("role") == "admin";
-
-                  final double er = (approveButton ? 0.2 : 0) + (editButton ? 0.2 : 0) + (deleteButton ? 0.2 : 0);
-
-                  return Card(
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(10.0),
-                      topLeft: Radius.circular(10.0),
-                      topRight: Radius.circular(10.0),
-                    )),
-                    elevation: 3,
-                    child: Slidable(
-                      closeOnScroll: true,
-                      endActionPane: er != 0 ? ActionPane(
-                        extentRatio: er,
-                        motion: const DrawerMotion(),
-                        children: [
-                          if(approveButton) SlidableAction(
-                            onPressed: (context){
-                              api.setStatusQuote(
-                                token: widget.settings.getString("token")!,
-                                quote: filteredQuotes[index],
-                                state: Status.public,
-                              ).then((e){
-                                 setState(() => refresh(widget.settings.getString("token")!, widget.settings.getString("role")!));  
-                              });
-                            },
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            icon: Icons.check,
-                            label: "OK",
-                          ),
-                          if(editButton) SlidableAction(
-                            onPressed: (context){
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: widget.settings, isEdit: filteredQuotes[index])));
-                            },
-                            backgroundColor: Colors.amber,
-                            foregroundColor: Colors.white,
-                            icon: Icons.edit,
-                            label: "Edit",
-                          ),
-                          if(deleteButton) SlidableAction(
-                            onPressed: (context){
-                              showDialog(context: context, builder: (context) => QuoteDeleteDialog(
-                                token: widget.settings.getString("token")!,
-                                quote: filteredQuotes[index],
-                                onDone: (e) => setState(() => _quotes?.remove(filteredQuotes[index])),
-                              ));
-                            },
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            icon: Icons.delete,
-                            label: "NOK",
-                          ),
-                        ],
-                      ) : null,
-                      child: ListTile(
-                        dense: true,
-                        tileColor: filteredQuotes[index].state == Status.public ? Colors.white : const Color.fromARGB(255, 255, 169, 169),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.only(
-                          bottomLeft: Radius.circular(10.0),
-                          topLeft: Radius.circular(10.0),
-                          topRight: Radius.circular(10.0),
-                        )),
-                        contentPadding: const EdgeInsets.fromLTRB(18.0, 6, 12.0, 12.0),
-                        title: Text(
-                          "„${filteredQuotes[index].text}\"",
-                          style: _quoteTextTheme,
-                        ),
-                        subtitle: Text(
-                          "- ${filteredQuotes[index].originator.name}",
-                          style: Theme.of(context).textTheme.labelSmall,
-                          textAlign: TextAlign.right,
-                        ),
-                        onTap: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteDisplay(settings: widget.settings, quote: filteredQuotes[index])));
-                        },
-                        onLongPress: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: widget.settings, isEdit: filteredQuotes[index])));
-                        }
-                     ),
-                    ),
-                  ); 
-                },
-              );
+            if(_searchTerms != null) {
+              filteredQuotes = filteredQuotes.where((q) =>
+                _searchTerms!.map((t) =>
+                  q.text.toLowerCase().contains(t)
+                  || (q.context?.toLowerCase().contains(t) ?? false)
+                  || (q.note?.toLowerCase().contains(t) ?? false)
+                  || (q.id == t)
+                  || (q.originator.name.toLowerCase().contains(t))
+                ).where((element) => element).isNotEmpty
+              ).toList();
             }
 
-            return Container();
-          },
-        ),
+            filteredQuotes.sort(sortMethod);
+
+            return ListView.separated(
+              controller: defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux ? AdjustableScrollController(20) : null, // Idiotic, but flutter hasn't implemeted Platform.isLinux for the web platform yet...
+              separatorBuilder: (context, index) => const SizedBox(height: 5,),
+              itemCount: filteredQuotes.length,
+              itemBuilder: (context, index) {
+                final bool approveButton = filteredQuotes[index].state != Status.public && widget.settings.getString("role") == "admin";
+                final bool editButton = widget.settings.getString("role") == "admin";
+                final bool deleteButton = widget.settings.getString("role") == "admin";
+
+                final double er = (approveButton ? 0.2 : 0) + (editButton ? 0.2 : 0) + (deleteButton ? 0.2 : 0);
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Hero(
+                    tag: filteredQuotes[index].id,
+                    child: Card(
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(10.0),
+                        topLeft: Radius.circular(10.0),
+                        topRight: Radius.circular(10.0),
+                      )),
+                      elevation: 3,
+                      child: Slidable(
+                        closeOnScroll: true,
+                        endActionPane: er != 0 ? ActionPane(
+                          extentRatio: er,
+                          motion: const DrawerMotion(),
+                          children: [
+                            if(approveButton) SlidableAction(
+                              onPressed: (context){
+                                api.setStatusQuote(
+                                  token: widget.settings.getString("token")!,
+                                  quote: filteredQuotes[index],
+                                  state: Status.public,
+                                ).then((e){
+                                   setState(() => refresh(widget.settings.getString("token")!, widget.settings.getString("role")!));  
+                                });
+                              },
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                              icon: Icons.check,
+                              label: "OK",
+                            ),
+                            if(editButton) SlidableAction(
+                              onPressed: (context){
+                                Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: widget.settings, isEdit: filteredQuotes[index])));
+                              },
+                              backgroundColor: Colors.amber,
+                              foregroundColor: Colors.white,
+                              icon: Icons.edit,
+                              label: "Edit",
+                            ),
+                            if(deleteButton) SlidableAction(
+                              onPressed: (context){
+                                showDialog(context: context, builder: (context) => QuoteDeleteDialog(
+                                  token: widget.settings.getString("token")!,
+                                  quote: filteredQuotes[index],
+                                  onDone: (e) => setState(() => _quotes?.remove(filteredQuotes[index])),
+                                ));
+                              },
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              icon: Icons.delete,
+                              label: "NOK",
+                            ),
+                          ],
+                        ) : null,
+                        child: ListTile(
+                          dense: true,
+                          tileColor: filteredQuotes[index].state == Status.public ? Colors.white : const Color.fromARGB(255, 255, 169, 169),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.only(
+                            bottomLeft: Radius.circular(10.0),
+                            topLeft: Radius.circular(10.0),
+                            topRight: Radius.circular(10.0),
+                          )),
+                          contentPadding: const EdgeInsets.fromLTRB(18.0, 6, 12.0, 12.0),
+                          title: Text(
+                            "„${filteredQuotes[index].text}\"",
+                            style: _quoteTextTheme,
+                          ),
+                          subtitle: Text(
+                            "- ${filteredQuotes[index].originator.name}",
+                            style: Theme.of(context).textTheme.labelSmall,
+                            textAlign: TextAlign.right,
+                          ),
+                          onTap: (){
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteDisplay(settings: widget.settings, quote: filteredQuotes[index])));
+                          },
+                          onLongPress: (){
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: widget.settings, isEdit: filteredQuotes[index])));
+                          }
+                       ),
+                      ),
+                    ),
+                  ),
+                ); 
+              },
+            );
+          }
+
+          return Container();
+        },
       )
     );
   }
@@ -281,7 +282,7 @@ class _CatalogState extends State<Catalog> {
 
     setState(() {
       _appBarContent = Container(
-        padding: EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
         color: Colors.white,
         child: TextField(
           //cursorColor: Colors.white,
