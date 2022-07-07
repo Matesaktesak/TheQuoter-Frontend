@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hlaskomat/quoteDeleteDialog.dart';
+import 'package:hlaskomat/quote_create.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'icon_font_icons.dart';
 
@@ -23,7 +25,7 @@ class QuoteDisplay extends StatelessWidget {
         title: Text(quote != null ? "Quote" : "Random quote"),
         actions: [
           IconButton(
-            onPressed: (){}, // TODO: Implement
+            onPressed: (){}, // TODO: Implement quote report
             icon: const Icon(Icons.flag)
           )
         ],
@@ -49,7 +51,7 @@ class QuoteDisplay extends StatelessWidget {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 5.0),
         child: FloatingActionButton.large(
-          backgroundColor: pending ? Color.fromARGB(255, 58, 233, 58) : null,
+          backgroundColor: pending ? const Color.fromARGB(255, 58, 233, 58) : null,
           onPressed: () {
             // TODO: Implement approve
 
@@ -67,31 +69,58 @@ class QuoteDisplay extends StatelessWidget {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: settings.getString("role") == "admin" ? BottomAppBar(
+      bottomNavigationBar: (settings.getString("role") == "admin") || (true /* TODO: check the quote is mine */) ? BottomAppBar(
         elevation: 5.0,
         shape: const CircularNotchedRectangle(),
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 5),
+          padding: const EdgeInsets.symmetric(vertical: 5),
           child: Row(
-            children: [
-            Expanded(
-              flex: 2,
-              child: IconButton(
-                icon: Icon(Icons.edit),
-                tooltip: "Edit",
-                onPressed: (){}, // TODO: Implement
+            children: settings.getString("role") == "admin" ? [
+              Expanded(
+                flex: 2,
+                child: IconButton(
+                  icon: const Icon(Icons.edit),
+                  tooltip: "Edit",
+                  onPressed: (){
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: settings, isEdit: quote,)));
+                  },
+                ),
               ),
-            ),
-            const Expanded(flex: 1, child: SizedBox(width: 5,)),
-            Expanded(
-              flex: 2,
-              child: IconButton(
-                icon: Icon(Icons.delete),
-                tooltip: "Delete",
-                onPressed: (){}, // TODO: Implement
+              const Expanded(flex: 1, child: SizedBox(width: 5,)),
+              Expanded( // Delete button
+                flex: 2,
+                child: IconButton(
+                  icon: const Icon(Icons.delete),
+                  tooltip: "Delete",
+                  onPressed: (){
+                    showDialog(context: context, builder: (context) => QuoteDeleteDialog(
+                      token: settings.getString("token")!,
+                      quote: quote!,
+                      onDone: (e) => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => QuoteDisplay(settings: settings))),
+                    ));
+                  }, // TODO: Test quote deletion
+                ),
               ),
-            ),
-          ]),
+            ] : [ // If not an admin, let the user vote
+              Expanded(
+                flex: 2,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_upward),
+                  tooltip: "Upvote",
+                  onPressed: (){}, // TODO: Implement
+                ),
+              ),
+              const Expanded(flex: 1, child: SizedBox(width: 5,)),
+              Expanded(
+                flex: 2,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_downward),
+                  tooltip: "Downvote",
+                  onPressed: (){}, // TODO: Implement
+                ),
+              ),
+            ]
+          ),
         ),
       ) : null,
     );

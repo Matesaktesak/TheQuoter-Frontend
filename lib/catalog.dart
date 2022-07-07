@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:hlaskomat/quoteDeleteDialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'main.dart';
@@ -150,26 +151,10 @@ class _CatalogState extends State<Catalog> {
                           ),
                           if(deleteButton) SlidableAction(
                             onPressed: (context){
-                              showDialog(context: context, builder: (context) => AlertDialog(
-                                content: const Text("Really?"),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text("Nope"),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      api.deleteQuote(
-                                        token: widget.settings.getString("token")!,
-                                        quote: filteredQuotes[index]
-                                      ).then((e){
-                                        setState(() => _quotes!.remove(filteredQuotes[index]));  
-                                      });
-                                      Navigator.pop(context);
-                                    },
-                                    child: const Text("(Thanos snaps)")
-                                  )
-                                ],
+                              showDialog(context: context, builder: (context) => QuoteDeleteDialog(
+                                token: widget.settings.getString("token")!,
+                                quote: filteredQuotes[index],
+                                onDone: (e) => setState(() => _quotes?.remove(filteredQuotes[index])),
                               ));
                             },
                             backgroundColor: Colors.red,
