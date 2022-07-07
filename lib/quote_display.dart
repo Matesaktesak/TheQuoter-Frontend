@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:hlaskomat/quote_delete_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'icon_font_icons.dart';
 import 'capture.dart';
 
 import 'main.dart';
 import 'models/quote.dart';
+import 'quote_create.dart';
 
 class QuoteDisplay extends StatelessWidget {
   final SharedPreferences settings;
@@ -57,7 +59,7 @@ class QuoteDisplay extends StatelessWidget {
             icon: const Icon(Icons.share)
           ),
           IconButton(
-            onPressed: (){}, // TODO: Implement
+            onPressed: (){}, // TODO: Implement quote report
             icon: const Icon(Icons.flag)
           )
         ],
@@ -90,48 +92,81 @@ class QuoteDisplay extends StatelessWidget {
         child: FloatingActionButton.large(
           backgroundColor: pending ? const Color.fromARGB(255, 58, 233, 58) : null,
           onPressed: () {
-            // TODO: Implement approve
-
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => QuoteDisplay(
-                  settings: settings,
-                  future: api.getRandomQuote(settings.getString("token")!),
+            if(pending){
+              api.setStatusQuote(
+                token: settings.getString("token")!,
+                quote: quote!,
+                state: Status.public,
+              ).then((e){
+                Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: ((context) =>
+                    QuoteDisplay(
+                      settings: settings,
+                      future: api.getQuote(
+                        settings.getString("token")!,
+                        id: quote!.id)
+                      )
+                    )
+                  )
+                );
+              });
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => QuoteDisplay(
+                    settings: settings,
+                    future: api.getRandomQuote(settings.getString("token")!),
+                  )
                 )
-              )
-            );
+              );
+            }
           },
           tooltip: pending ? "Approve" : "Random quote",
           child: pending ? const Icon(Icons.check) : const Icon(IconFont.perspective_dice_three),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: settings.getString("role") == "admin" ? BottomAppBar(
+      bottomNavigationBar: (settings.getString("role") == "admin") || (true /* TODO: check the quote is mine */) ? BottomAppBar(
         elevation: 5.0,
         shape: const CircularNotchedRectangle(),
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                Colors.green,
-                Colors.white,
-                Colors.white,
-                Colors.red
-              ]
-            )
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
-            child: Row(
-              children: [
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          child: Row(
+            children: settings.getString("role") == "admin" ? [
               Expanded(
                 flex: 2,
                 child: IconButton(
                   icon: const Icon(Icons.edit),
                   tooltip: "Edit",
+                  onPressed: (){
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => QuoteCreate(settings: settings, isEdit: quote,)));
+                  },
+                ),
+              ),
+              const Expanded(flex: 1, child: SizedBox(width: 5,)),
+              Expanded( // Delete button
+                flex: 2,
+                child: IconButton(
+                  color: Colors.red,
+                  icon: const Icon(Icons.delete),
+                  tooltip: "Delete",
+                  onPressed: (){
+                    showDialog(context: context, builder: (context) => QuoteDeleteDialog(
+                      token: settings.getString("token")!,
+                      quote: quote!,
+                      onDone: (e) => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => QuoteDisplay(settings: settings))),
+                    ));
+                  }, // TODO: Test quote deletion
+                ),
+              ),
+            ] : [ // If not an admin, let the user vote
+              Expanded(
+                flex: 2,
+                child: IconButton(
+                  color: Colors.green,
+                  icon: const Icon(Icons.arrow_upward),
+                  tooltip: "Upvote",
                   onPressed: (){}, // TODO: Implement
                 ),
               ),
@@ -139,12 +174,13 @@ class QuoteDisplay extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: IconButton(
-                  icon: const Icon(Icons.delete),
-                  tooltip: "Delete",
+                  color: Colors.red,
+                  icon: const Icon(Icons.arrow_downward),
+                  tooltip: "Downvote",
                   onPressed: (){}, // TODO: Implement
                 ),
               ),
-            ]),
+            ]
           ),
         ),
       ) : null,
@@ -196,33 +232,35 @@ class QuoteBlock extends StatelessWidget {
               quote.context!
             ),
           ),
-          Card(
-            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(10.0),
-              topLeft: Radius.circular(10.0),
-              topRight: Radius.circular(10.0),
-            )),
-            elevation: 3,
-            color: const Color(0xFFFFFFFF),
-            child: Padding(
-              padding: const EdgeInsets.all(18.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    "„$displayText”",
-                    style: _quoteTextTheme,
-                    textAlign: TextAlign.left,
-                    maxLines: 4,
-                  ),
-                  Text(
-                    "- ${quote.originator.name}",
-                    textAlign: TextAlign.right,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(color: const Color(0xFF222222)),
-                  )
-                ],
-              ),
-            )
+          Hero(
+            tag: quote.id,
+            child: Card(
+              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(10.0),
+                topLeft: Radius.circular(10.0),
+                topRight: Radius.circular(10.0),
+              )),
+              elevation: 3,
+              color: const Color(0xFFFFFFFF),
+              child: Padding(
+                padding: const EdgeInsets.all(18.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      "„${quote.text}”",
+                      style: _quoteTextTheme,
+                      textAlign: TextAlign.left,
+                    ),
+                    Text(
+                      "- ${quote.originator.name}",
+                      textAlign: TextAlign.right,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(color: const Color(0xFF222222)),
+                    )
+                  ],
+                ),
+              )
+            ),
           ),
           if(quote.note != null) Text("(${quote.note!})"),
         ]

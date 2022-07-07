@@ -61,7 +61,8 @@ class MainMenu extends StatelessWidget {
                         onPressed: () => logout(context),
                         label: const Text("Logout"),
                         icon: const Icon(Icons.logout),
-                      )
+                      ),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, "/about"), child: Text("About")),
                     ],
                   ),
                 ),
@@ -92,7 +93,7 @@ class MainMenu extends StatelessWidget {
             ),
             MenuButton(text: "Quote of the day", icon: Icons.format_quote, onPressed: () => ""),
             MenuButton(text: "Catalog", icon: IconFont.inbox, onPressed: () => Navigator.pushNamed(context, "/catalog")),
-            const SizedBox(height: 40), // TODO: remove
+            const SizedBox(height: 40),
             MenuButton(
               text: "Create quote",
               icon: Icons.add,
