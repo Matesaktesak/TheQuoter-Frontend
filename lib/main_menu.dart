@@ -61,7 +61,8 @@ class MainMenu extends StatelessWidget {
                         onPressed: () => logout(context),
                         label: const Text("Logout"),
                         icon: const Icon(Icons.logout),
-                      )
+                      ),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, "/about"), child: Text("About")),
                     ],
                   ),
                 ),
