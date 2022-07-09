@@ -80,6 +80,8 @@ class MainMenu extends StatelessWidget {
   }
 
   void logout(BuildContext context) {
+    settings.remove("token");
+    settings.remove("password");
     Navigator.of(context).pushReplacementNamed("/login");
   }
 }

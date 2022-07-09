@@ -13,6 +13,7 @@ QuoterAPI api = QuoterAPI("madison.levicek.net", 8083);
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // TODO: IMPORTANT: Change settings to encrypted secure storage 
   final SharedPreferences settings = await SharedPreferences.getInstance();
   
   runApp(TheQuoter(sharedPreferences: settings));

@@ -4,6 +4,7 @@ import 'api.dart';
 import 'main.dart';
 import 'models/class.dart';
 import 'models/person.dart';
+import 'models/responses.dart';
 import 'quote_display.dart';
 
 import 'models/quote.dart';
@@ -27,7 +28,7 @@ class QuoteCreate extends StatefulWidget {
 class _QuoteCreateState extends State<QuoteCreate> {
   final _quoteFormKey = GlobalKey<FormState>();
 
-  Future<QuoteCreationResponse>? futureQuote;
+  Future<QuoteResponse>? futureQuote;
   bool error = false;
 
   @override
@@ -185,7 +186,7 @@ class _QuoteCreateState extends State<QuoteCreate> {
               ),
               FutureBuilder(
                 future: futureQuote,
-                builder: (context, AsyncSnapshot<QuoteCreationResponse?> snapshot) {
+                builder: (context, AsyncSnapshot<QuoteResponse?> snapshot) {
                   if (snapshot.connectionState == ConnectionState.none) { // If the API request has not been made yet
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.center,

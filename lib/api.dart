@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'models/person.dart';
 import 'models/class.dart';
 import 'models/quote.dart';
+import 'models/responses.dart';
 
 
 class QuoterAPI {
@@ -30,7 +31,7 @@ class QuoterAPI {
   }
 
   // Login request
-  Future<String?> login(String username, String pwd) async {
+  Future<LoginResponse?> login({required String username, required String password}) async {
     try{
       Uri uri = Uri(
           scheme: "http",
@@ -40,13 +41,20 @@ class QuoterAPI {
 
       http.Response res = await http.post(uri, body: {
         "username": username,
-        "password": pwd,
+        "password": password,
       });
 
       if (res.statusCode == 200) {
         print("Login sucessfull");
         print("Token: ${jsonDecode(res.body)["token"]}");
-        return jsonDecode(res.body)["token"];
+        return LoginResponse(
+          token: jsonDecode(res.body)["token"],
+          role: UserRole.values[jsonDecode(res.body)["role"]],
+          id: jsonDecode(res.body)["id"],
+          email: jsonDecode(res.body)["email"],
+          username: jsonDecode(res.body)["username"],
+          clas: Class.fromJson(jsonDecode(res.body)["class"]),
+        );
       } else {
         print("Login failed");
         return null;
@@ -59,7 +67,7 @@ class QuoterAPI {
   }
 
   // Register request
-  Future<String?> register(String username, String email, String pwd, Class clas) async {
+  Future<LoginResponse?> register(String username, String email, String pwd, Class clas) async {
       Uri url = Uri(
       scheme: "http",
       port: serverPort,
@@ -78,7 +86,14 @@ class QuoterAPI {
 
     if (res.statusCode == 201) {
       print("Registered sucessfully!");
-      return jsonDecode(res.body)["token"];
+      return LoginResponse(
+        token: jsonDecode(res.body)["token"],
+        role: UserRole.values[jsonDecode(res.body)["role"]],
+        id: jsonDecode(res.body)["id"],
+        email: jsonDecode(res.body)["email"],
+        username: jsonDecode(res.body)["username"],
+        clas: Class.fromJson(jsonDecode(res.body)["class"]),
+      );
     } else {
       print("Registration failed");
       return null;
@@ -223,7 +238,7 @@ class QuoterAPI {
   }
 
   // Create a new quote
-  Future<QuoteCreationResponse> createQuote({required String token,
+  Future<QuoteResponse> createQuote({required String token,
     required String text,
     String? context,
     String? note,
@@ -252,15 +267,15 @@ class QuoterAPI {
     );
 
     if (res.statusCode == 201 || res.statusCode == 202) {
-      return QuoteCreationResponse(jsonDecode(res.body)["_id"], res.statusCode);
+      return QuoteResponse(jsonDecode(res.body)["_id"], res.statusCode);
     } else {
-      return QuoteCreationResponse(null, res.statusCode);
+      return QuoteResponse(null, res.statusCode);
       throw Exception("Quote creation error(${res.statusCode})");
     }
   }
 
   // Edit a quote
-  Future<QuoteCreationResponse> editQuote({required String token,
+  Future<QuoteResponse> editQuote({required String token,
     required Quote quote}) async {
     Uri uri = Uri(
       scheme: "http",
@@ -284,18 +299,10 @@ class QuoterAPI {
     );
 
     if (res.statusCode == 204) {
-      return QuoteCreationResponse(quote.id, res.statusCode);
+      return QuoteResponse(quote.id, res.statusCode);
     } else {
-      return QuoteCreationResponse(null, res.statusCode);
+      return QuoteResponse(null, res.statusCode);
       throw Exception("Quote editing error(${res.statusCode})");
     }
   }
-}
-
-// Created quote object
-class QuoteCreationResponse{
-  final String? id;
-  final int statusCode;
-
-  QuoteCreationResponse(this.id, this.statusCode);
 }

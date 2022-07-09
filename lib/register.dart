@@ -1,3 +1,4 @@
+import 'package:TheQuoter/models/responses.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'main.dart';
@@ -16,7 +17,7 @@ class Register extends StatefulWidget {
 class _RegisterState extends State<Register> {
   final _registerFormKey = GlobalKey<FormState>();
 
-  Future<String?>? futureToken;
+  Future<LoginResponse?>? futureToken;
   bool error = false;
 
   @override
@@ -126,7 +127,7 @@ class _RegisterState extends State<Register> {
               ),
               FutureBuilder(
                 future: futureToken,
-                builder: (context, AsyncSnapshot<String?> snapshot) {
+                builder: (context, AsyncSnapshot<LoginResponse?> snapshot) {
                   if (snapshot.connectionState == ConnectionState.none) { // If the API request has not been made yet
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -152,8 +153,16 @@ class _RegisterState extends State<Register> {
                     if (snapshot.data != "" && snapshot.data != null) {         // And a token has been returned
                       print("snapshot.data: ${snapshot.data}");
 
-                      widget.settings.setString("username", _usernameController.text);      // Save the username
-                      widget.settings.setString("token", snapshot.data!);                   // Save the token
+                      // Save the password // TODO: Switch to secure storage
+                      widget.settings.setString("password", _passwordController.text);
+
+                      widget.settings.setString("token", snapshot.data!.token);       // Save the token
+                      widget.settings.setString("username", snapshot.data!.username); // Save the username
+                      widget.settings.setString("email", snapshot.data!.email);       // Save the email
+                      widget.settings.setString("id", snapshot.data!.id);             // Save the id
+                      widget.settings.setString("class", snapshot.data!.clas.id);     // Save the class
+                      widget.settings.setString("role", snapshot.data!.role.name);    // Save the role
+
                       Future.microtask(() => Navigator.pushReplacementNamed(context, "/")); // Go to the main page
                     } else { // If the token is invalid
                       Future.microtask(() => setState(() {

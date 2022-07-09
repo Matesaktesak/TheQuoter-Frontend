@@ -1,3 +1,4 @@
+import 'package:TheQuoter/models/responses.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api.dart';
@@ -15,14 +16,21 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   final _loginFormKey = GlobalKey<FormState>();
 
-  Future<String?>? futureToken;
+  Future<LoginResponse?>? futureLogin;
   bool error = false;
 
   @override
   Widget build(BuildContext context) {
-    widget.settings.setString("token", ""); // Clear token (log out)
+    widget.settings.remove("token"); // Clear token (log out)
 
     _usernameController.text = widget.settings.getString("username") ?? "";
+
+    if(widget.settings.getString("password") != null) {
+      futureLogin = api.login(
+        username: widget.settings.getString("username")!,
+        password: widget.settings.getString("password")!,
+      );
+    }
 
     return Scaffold(
       primary: true,
@@ -70,8 +78,8 @@ class _LoginState extends State<Login> {
                         height: 18.0,
                       ),
                       FutureBuilder(
-                        future: futureToken,
-                        builder: (context, AsyncSnapshot<String?> snapshot) {
+                        future: futureLogin,
+                        builder: (context, AsyncSnapshot<LoginResponse?> snapshot) {
                           if (snapshot.connectionState == ConnectionState.none) { // If the API request has not been made yet
                             return Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -80,9 +88,10 @@ class _LoginState extends State<Login> {
                                   // Show the login button
                                   onPressed: () {
                                     setState(() {
-                                      futureToken = api.login(
-                                          _usernameController.text,
-                                          _passwordController.text);
+                                      futureLogin = api.login(
+                                        username: _usernameController.text,
+                                        password: _passwordController.text
+                                      );
                                     });
                                   },
                                   child: const Text("Login"),
@@ -96,13 +105,21 @@ class _LoginState extends State<Login> {
                           } else if (snapshot.connectionState == ConnectionState.waiting) { // If the API request is still loading
                             return const CircularProgressIndicator(); // Show a loading indicator
                           } else if (snapshot.connectionState == ConnectionState.done) { // If the API request has finnished
-                            if (snapshot.data != "" && snapshot.data != null) { // And a token has been returned
-                              widget.settings.setString("username", _usernameController.text); // Save the username
-                              widget.settings.setString("token", snapshot.data!); // Save the token
+                            if (snapshot.data != null) { // And a token has been returned
+                              // Save the password // TODO: Switch to secure storage
+                              widget.settings.setString("password", _passwordController.text);
+
+                              widget.settings.setString("token", snapshot.data!.token);       // Save the token
+                              widget.settings.setString("username", snapshot.data!.username); // Save the username
+                              widget.settings.setString("email", snapshot.data!.email);       // Save the email
+                              widget.settings.setString("id", snapshot.data!.id);             // Save the id
+                              widget.settings.setString("class", snapshot.data!.clas.id);     // Save the class
+                              widget.settings.setString("role", snapshot.data!.role.name);    // Save the role
+
                               Future.microtask(() => Navigator.pushReplacementNamed( context, "/")); // Go to the main page
                             } else { // If the token is invalid
                               Future.microtask(() => setState(() {
-                                futureToken = null; // Reset the future token
+                                futureLogin = null; // Reset the future token
                                 error = true; // Show an error message
                               }));
                             }
