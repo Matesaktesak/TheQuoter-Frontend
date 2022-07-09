@@ -1,23 +1,26 @@
 import 'package:TheQuoter/models/responses.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'main.dart';
+import 'api.dart';
 import 'models/class.dart';
 
 class Register extends StatefulWidget {
-  String? _classId;
   final SharedPreferences settings;
 
-  Register({required this.settings, Key? key}) : super(key: key);
+  const Register({required this.settings, Key? key}) : super(key: key);
 
   @override
   State<Register> createState() => _RegisterState();
 }
 
 class _RegisterState extends State<Register> {
+  String? _classId;
   final _registerFormKey = GlobalKey<FormState>();
 
-  Future<LoginResponse?>? futureToken;
+  Future<UserStateResponse?>? futureToken;
   bool error = false;
 
   @override
@@ -59,7 +62,7 @@ class _RegisterState extends State<Register> {
                           // If the API request has finnished
                           return DropdownButton(
                             hint: const Text("Class"),
-                            value: widget._classId,
+                            value: _classId,
                             items: snapshot.data?.map((Class c) {
                               return DropdownMenuItem(
                                 value: c.id,
@@ -69,7 +72,7 @@ class _RegisterState extends State<Register> {
                             onChanged: (String? value) { // On value changed
                               if(value != null) { // If value is not null
                                 setState(() {
-                                  widget._classId = value;
+                                  _classId = value;
                                 });
                               }
                             },
@@ -127,16 +130,16 @@ class _RegisterState extends State<Register> {
               ),
               FutureBuilder(
                 future: futureToken,
-                builder: (context, AsyncSnapshot<LoginResponse?> snapshot) {
+                builder: (context, AsyncSnapshot<UserStateResponse?> snapshot) {
                   if (snapshot.connectionState == ConnectionState.none) { // If the API request has not been made yet
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         ElevatedButton( // Show the register button
                           onPressed: () {
-                            print("Register button pressed");
+                            if(kDebugMode) print("Register button pressed");
                             setState(() {
-                              if(validate() && widget._classId != null) futureToken = api.register(_usernameController.text, _emailController.text, _passwordController.text, Class(id: widget._classId!));
+                              if(validate() && _classId != null) futureUser = api.register(_usernameController.text, _emailController.text, _passwordController.text, Class(id: _classId!));
                             });
                           },
                           child: const Text("Register"),
@@ -150,8 +153,8 @@ class _RegisterState extends State<Register> {
                   } else if (snapshot.connectionState == ConnectionState.waiting) { // If the API request is still loading
                     return const CircularProgressIndicator(); // Show a loading indicator
                   } else if (snapshot.connectionState == ConnectionState.done) { // If the API request has finnished
-                    if (snapshot.data != "" && snapshot.data != null) {         // And a token has been returned
-                      print("snapshot.data: ${snapshot.data}");
+                    if (snapshot.data != null) {         // And a token has been returned
+                      if(kDebugMode) print("snapshot.data: ${snapshot.data}");
 
                       // Save the password // TODO: Switch to secure storage
                       widget.settings.setString("password", _passwordController.text);
@@ -166,7 +169,7 @@ class _RegisterState extends State<Register> {
                       Future.microtask(() => Navigator.pushReplacementNamed(context, "/")); // Go to the main page
                     } else { // If the token is invalid
                       Future.microtask(() => setState(() {
-                        futureToken = null; // Reset the future token
+                        futureUser = null; // Reset the future token
                         error = true; // Show an error message
                       }));
                     }

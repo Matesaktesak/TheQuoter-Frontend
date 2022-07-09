@@ -1,5 +1,8 @@
+// ignore_for_file: curly_braces_in_flow_control_structures
+
 import 'dart:convert';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'models/person.dart';
@@ -13,12 +16,14 @@ class QuoterAPI {
   int serverPort;
 
   QuoterAPI(this.serverAddress, this.serverPort) {
-    print("QuoterAPI created");
-    echo("The connetion to the server is working").then((value) => print(value));
+    if(kDebugMode) print("QuoterAPI created");
+    // ignore: avoid_print
+    if(kDebugMode) echo("The connetion to the server is working").then((value) => print(value));
   }
 
+  // Echo test
   Future<String> echo(String message) async {
-    print("Echoing $message");
+    if(kDebugMode) print("Echoing $message");
     final response = await http.get(Uri(
       scheme: "http",
       port: serverPort,
@@ -37,7 +42,8 @@ class QuoterAPI {
           scheme: "http",
           port: serverPort,
           host: serverAddress,
-          path: "/users/login");
+          path: "/users/login"
+        );
 
       http.Response res = await http.post(uri, body: {
         "username": username,
@@ -45,74 +51,75 @@ class QuoterAPI {
       });
 
       if (res.statusCode == 200) {
-        print("Login sucessfull");
-        print("Token: ${jsonDecode(res.body)["token"]}");
-        return LoginResponse(
-          token: jsonDecode(res.body)["token"],
-          role: UserRole.values[jsonDecode(res.body)["role"]],
-          id: jsonDecode(res.body)["id"],
-          email: jsonDecode(res.body)["email"],
-          username: jsonDecode(res.body)["username"],
-          clas: Class.fromJson(jsonDecode(res.body)["class"]),
+        if(kDebugMode) print("Login sucessfull");
+
+        Map<String, dynamic> data = jsonDecode(res.body);
+
+        if(kDebugMode) print("Token: ${data["token"]}");
+
+        return UserStateResponse(
+          token: data["token"],
+          id: data["user"]["_id"],
+          username: data["user"]["username"],
+          email: data["user"]["email"],
+          role: data["user"]["role"]
         );
       } else {
-        print("Login failed");
+        if(kDebugMode) print("Login failed: ${res.statusCode}");
         return null;
-        throw Exception("Login failed(${res.statusCode})");
+        //throw Exception("Login failed(${res.statusCode})");
       }
     } catch (e) {
-      print("Login failed");
+      if(kDebugMode) print("Login failed, $e");
       return null;
     }
   }
 
   // Register request
-  Future<LoginResponse?> register(String username, String email, String pwd, Class clas) async {
-      Uri url = Uri(
+  Future<UserStateResponse?> register(String username, String email, String pwd, Class clas) async {
+    Uri url = Uri(
       scheme: "http",
       port: serverPort,
       host: serverAddress, 
       path: "/users"
     );
 
-    print("Sending register request");
+    if(kDebugMode) print("Sending register request");
 
     http.Response res = await http.post(url, body: {
       "username": username,
       "password": pwd,
       "email": email,
-      "class": clas.id // TODO: Implement class
+      "class": clas.id
     });
 
     if (res.statusCode == 201) {
-      print("Registered sucessfully!");
-      return LoginResponse(
-        token: jsonDecode(res.body)["token"],
-        role: UserRole.values[jsonDecode(res.body)["role"]],
-        id: jsonDecode(res.body)["id"],
-        email: jsonDecode(res.body)["email"],
-        username: jsonDecode(res.body)["username"],
-        clas: Class.fromJson(jsonDecode(res.body)["class"]),
+      if(kDebugMode) print("Registered sucessfully");
+      Map<String, dynamic> data = jsonDecode(res.body);
+      return UserStateResponse(
+        token: data["token"],
+        id: data["id"],
+        username: data["username"],
+        role: data["role"],
+        email: data["email"]
       );
     } else {
-      print("Registration failed");
-      return null;
+      if(kDebugMode) print("Registration failed: ${res.statusCode}");
       throw Exception("Registration failed(${res.statusCode})");
     }
   }
 
   // Get all classes
   Future<List<Class>>? getClasses() async {
-    Uri url = Uri(
+    Uri uri = Uri(
         scheme: "http",
         port: serverPort,
         host: serverAddress,
         path: "/classes");
 
-    http.Response res = await http.get(url);
+    http.Response res = await http.get(uri);
 
-    if (res.statusCode == 200) {
-      print("Classes fetched");
+    if(res.statusCode == 200) {
 
       List<Class> fetched = (jsonDecode(res.body) as List)
           .map<Class>((e) => Class.fromJson(e))
@@ -120,46 +127,42 @@ class QuoterAPI {
 
       fetched.sort((a, b) => a.name.compareTo(b.name));
 
-      //print(fetched.map((e) => e.name));
+      if(kDebugMode) print("Classes fetched: ${fetched.length}");
+
       return fetched;
-    } else {
-      throw Exception("Fetching classes failed(${res.statusCode})");
-    }
+    } else throw Exception("Fetching classes failed(${res.statusCode})");
   }
 
   // Get all classes
   Future<List<Person>>? getTeachers() async {
-    Uri url = Uri(
-        scheme: "http",
-        port: serverPort,
-        host: serverAddress,
-        path: "/people",
-        queryParameters: {
-          "type": "teacher",
-        }
-      );
+    Uri uri = Uri(
+      scheme: "http",
+      port: serverPort,
+      host: serverAddress,
+      path: "/people",
+      queryParameters: {
+        "type": "teacher",
+      }
+    );
 
-    http.Response res = await http.get(url);
+    http.Response res = await http.get(uri);
 
     if (res.statusCode == 200) {
-      print("Teachers fetched");
-
       List<Person> fetched = (jsonDecode(res.body) as List)
-          .map<Person>((e) => Person.fromJson(e))
-          .toList();
+        .map<Person>((e) => Person.fromJson(e))
+        .toList();
 
       fetched.sort((a, b) => a.name.compareTo(b.name));
 
+      if(kDebugMode) print("Teachers fetched: ${fetched.length}");
       //print(fetched.map((e) => e.name));
       return fetched;
-    } else {
-      throw Exception("Fetching teachers failed(${res.statusCode})");
-    }
+    } else throw Exception("Fetching teachers failed(${res.statusCode})");
   }
 
 
   // Get quotes by query
-  Future<List<Quote>?>? getQuote(String token, {String? id, String? text, Person? originator, Class? clas}) async {
+  Future<List<Quote>?>? getQuote(String token, {String? id, String? text, Person? originator, Class? clas, Status? state}) async {
     // Prepare the query URI
     Uri uri = Uri(
       scheme: "http",
@@ -170,7 +173,7 @@ class QuoterAPI {
         if(text != null) "text": text,
         if(originator != null) "originator": originator.id,
         if(clas != null) "class": clas.id,
-        "state": "public",
+        if(state != null) "state": state.name else "state": "public",
       } : null,
     );
 
@@ -182,9 +185,8 @@ class QuoterAPI {
       },
     );
 
+    // If the request was successful
     if (res.statusCode == 200) {
-      // If the request was successful
-      print("Quotes fetched");
 
       List<Quote>? fetched;
       // If we are featching multiple potential quotes, the server wraps the quotes in "quotes" field
@@ -195,11 +197,11 @@ class QuoterAPI {
       } else if(jsonDecode(res.body) != null && id != null){ // in case it was a single quote
         fetched = [Quote.fromJson(jsonDecode(res.body))];
       }
-      //print("${fetched.map((e) => e.id)}: ${fetched.map((e) => e.text)}");
+
+      if(kDebugMode) print("Quotes fetched sucessfully: ${fetched?.length}");
 
       return fetched;
-    } else {
-      // Else throw an exception
+    } else { // Else throw an exception
       throw Exception("Quote query error(${res.statusCode})");
     }
   }
@@ -220,25 +222,36 @@ class QuoterAPI {
       },
     );
 
+    // If the request was successful
     if (res.statusCode == 200) {
-      // If the request was successful
-      print("Random quote fetched");
-
       Quote fetched = Quote.fromJson(jsonDecode(res.body));
 
+      if(kDebugMode) print("Random quote fetched: $fetched");
+
       return fetched;
-    } else {
-      // Else throw an exception
+    } else { // Else throw an exception
       throw Exception("Random quote query error(${res.statusCode})");
     }
   }
 
-  Future<List<Quote>?>? getQuotesCatalog(String token) async {
-    return getQuote(token, ); // TODO: Implement proper catalog fetching
+  Future<List<Quote>?>? getQuotesCatalog({required String token, required String role}) async {
+    List<Quote> catalog = List<Quote>.empty(
+      growable: true
+    );
+
+    List<Quote>? pending;
+    if(role == "admin") pending = await getQuote(token, state: Status.pending);
+    if(role == "admin" && pending != null) catalog.addAll(pending);
+    
+    List<Quote>? public = await getQuote(token, state: Status.public);
+    if(public != null) catalog.addAll(public);
+
+    return catalog; // TODO: Implement proper catalog fetching
   }
 
   // Create a new quote
-  Future<QuoteResponse> createQuote({required String token,
+  Future<QuoteActionResponse> createQuote({
+    required String token,
     required String text,
     String? context,
     String? note,
@@ -259,23 +272,24 @@ class QuoterAPI {
       },
       body: {
         "text": text,
-        if(context != null) "context": context,
-        if(note != null) "note": note,
+        if(context != null && context != "") "context": context,
+        if(note != null && note != "") "note": note,
         "originator": originator.id,
         if(clas != null) "class": clas.id
       }
     );
 
     if (res.statusCode == 201 || res.statusCode == 202) {
-      return QuoteResponse(jsonDecode(res.body)["_id"], res.statusCode);
+      return QuoteActionResponse(jsonDecode(res.body)["_id"], res.statusCode);
     } else {
-      return QuoteResponse(null, res.statusCode);
-      throw Exception("Quote creation error(${res.statusCode})");
+      if(kDebugMode) print("Quote creation failed: ${res.statusCode}");
+      return QuoteActionResponse(null, res.statusCode);
+      //throw Exception("Quote creation error(${res.statusCode})");
     }
   }
 
   // Edit a quote
-  Future<QuoteResponse> editQuote({required String token,
+  Future<QuoteActionResponse> editQuote({required String token,
     required Quote quote}) async {
     Uri uri = Uri(
       scheme: "http",
@@ -284,6 +298,8 @@ class QuoterAPI {
       path: "/quotes/${quote.id}"
     );
 
+    if(kDebugMode) print("Sending quote update request: $uri");
+
     http.Response res = await http.put(
       uri,
       headers: {
@@ -291,18 +307,100 @@ class QuoterAPI {
       },
       body: {
         "text": quote.text,
-        if(quote.context != null) "context": quote.context,
-        if(quote.note != null) "note": quote.note,
+        if(quote.context != null && quote.context != "") "context": quote.context,
+        if(quote.note != null && quote.note != "") "note": quote.note,
         "originator": quote.originator.id,
         if(quote.clas != null) "class": quote.clas?.id
       }
     );
 
     if (res.statusCode == 204) {
-      return QuoteResponse(quote.id, res.statusCode);
+      return QuoteActionResponse(quote.id, res.statusCode);
     } else {
-      return QuoteResponse(null, res.statusCode);
-      throw Exception("Quote editing error(${res.statusCode})");
+      if(kDebugMode) print("Quote update failed: ${res.statusCode}");
+      return QuoteActionResponse(null, res.statusCode);
+      //throw Exception("Quote editing error(${res.statusCode})");
     }
   }
+
+  // Edit quote status
+  Future<QuoteActionResponse> setStatusQuote({required String token, required Quote quote, required Status state,}) async {
+    Uri uri = Uri(
+      scheme: "http",
+      port: serverPort,
+      host: serverAddress,
+      path: "/quotes/${quote.id}/state"
+    );
+
+    http.Response res = await http.post(
+      uri,
+      headers: {
+        "Authorization": "Bearer $token"
+      },
+      body: {
+        "state": state.name
+      }
+    );
+
+    if(res.statusCode == 204){
+      if(kDebugMode) print("Quote state changed sucessfully to ${state.name}.");
+      return QuoteActionResponse(quote.id, res.statusCode);
+    } else {
+      if(kDebugMode) print("Quote state change failed: ${res.statusCode}");
+      throw Exception("Server refused update");
+    }
+  }
+
+  // Delete a quote
+  Future<QuoteActionResponse> deleteQuote({required String token,
+    required Quote quote}) async {
+    Uri uri = Uri(
+      scheme: "http",
+      port: serverPort,
+      host: serverAddress,
+      path: "/quotes/${quote.id}"
+    );
+
+    http.Response res = await http.delete(
+      uri,
+      headers: {
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (res.statusCode == 204) {
+      if(kDebugMode) print("Deletion sucessfull");
+      return QuoteActionResponse(null, res.statusCode);
+    } else {
+      if(kDebugMode) print("Deletion refused: ${res.statusCode}");
+      return QuoteActionResponse(null, res.statusCode);
+      //throw Exception("Quote editing error(${res.statusCode})");
+    }
+  }
+
+}
+
+// Created quote object
+class QuoteActionResponse{
+  final String? id;
+  final int statusCode;
+
+  QuoteActionResponse(this.id, this.statusCode);
+}
+
+// Response model for login and register actions
+class UserStateResponse{
+  final String token;
+  final String id;
+  final String username;
+  final String email;
+  final String role;
+
+  UserStateResponse({
+    required this.token,
+    required this.id,
+    required this.username,
+    required this.role,
+    required this.email
+  });
 }

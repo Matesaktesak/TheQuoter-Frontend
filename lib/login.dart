@@ -7,7 +7,7 @@ import 'main.dart';
 class Login extends StatefulWidget {
   final SharedPreferences settings;
 
-  Login({required this.settings, Key? key}) : super(key: key);
+  const Login({required this.settings, Key? key}) : super(key: key);
 
   @override
   State<Login> createState() => _LoginState();
@@ -16,14 +16,20 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   final _loginFormKey = GlobalKey<FormState>();
 
-  Future<LoginResponse?>? futureLogin;
+  Future<UserStateResponse?>? futureLogin;
   bool error = false;
+
+  @override
+  void initState(){
+    super.initState();
+    _usernameController.text = widget.settings.getString("username") ?? "";
+  }
 
   @override
   Widget build(BuildContext context) {
     widget.settings.remove("token"); // Clear token (log out)
 
-    _usernameController.text = widget.settings.getString("username") ?? "";
+    //_usernameController.text = widget.settings.getString("username") ?? "";
 
     if(widget.settings.getString("password") != null) {
       futureLogin = api.login(
@@ -79,7 +85,7 @@ class _LoginState extends State<Login> {
                       ),
                       FutureBuilder(
                         future: futureLogin,
-                        builder: (context, AsyncSnapshot<LoginResponse?> snapshot) {
+                        builder: (context, AsyncSnapshot<UserStateResponse?> snapshot) {
                           if (snapshot.connectionState == ConnectionState.none) { // If the API request has not been made yet
                             return Row(
                               mainAxisAlignment: MainAxisAlignment.center,
