@@ -36,7 +36,7 @@ class QuoterAPI {
   }
 
   // Login request
-  Future<LoginResponse?> login({required String username, required String password}) async {
+  Future<UserStateResponse?> login({required String username, required String password}) async {
     try{
       Uri uri = Uri(
           scheme: "http",
@@ -62,7 +62,8 @@ class QuoterAPI {
           id: data["user"]["_id"],
           username: data["user"]["username"],
           email: data["user"]["email"],
-          role: data["user"]["role"]
+          role: data["user"]["role"],
+          //clas: Class(id: data["user"]["class"]["id"], name: data["user"]["class"]["name"]),
         );
       } else {
         if(kDebugMode) print("Login failed: ${res.statusCode}");
@@ -101,7 +102,8 @@ class QuoterAPI {
         id: data["id"],
         username: data["username"],
         role: data["role"],
-        email: data["email"]
+        email: data["email"],
+        //clas: Class(id: data["class"]["id"], name: data["class"]["name"]),
       );
     } else {
       if(kDebugMode) print("Registration failed: ${res.statusCode}");
@@ -378,29 +380,4 @@ class QuoterAPI {
     }
   }
 
-}
-
-// Created quote object
-class QuoteActionResponse{
-  final String? id;
-  final int statusCode;
-
-  QuoteActionResponse(this.id, this.statusCode);
-}
-
-// Response model for login and register actions
-class UserStateResponse{
-  final String token;
-  final String id;
-  final String username;
-  final String email;
-  final String role;
-
-  UserStateResponse({
-    required this.token,
-    required this.id,
-    required this.username,
-    required this.role,
-    required this.email
-  });
 }

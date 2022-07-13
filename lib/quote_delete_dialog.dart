@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hlaskomat/api.dart';
 
 import 'main.dart';
 import 'models/quote.dart';
+import 'models/responses.dart';
 
 class  QuoteDeleteDialog extends StatelessWidget{
   final String token;

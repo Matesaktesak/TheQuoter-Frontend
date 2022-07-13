@@ -17,6 +17,8 @@ void main() async {
   
   // TODO: IMPORTANT: Change settings to encrypted secure storage 
   final SharedPreferences settings = await SharedPreferences.getInstance();
+
+  //settings.remove("token");
   
   runApp(TheQuoter(sharedPreferences: settings));
 }

@@ -1,11 +1,10 @@
-import 'package:TheQuoter/models/responses.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'main.dart';
-import 'api.dart';
 import 'models/class.dart';
+import 'models/responses.dart';
 
 class Register extends StatefulWidget {
   final SharedPreferences settings;
@@ -20,7 +19,7 @@ class _RegisterState extends State<Register> {
   String? _classId;
   final _registerFormKey = GlobalKey<FormState>();
 
-  Future<UserStateResponse?>? futureToken;
+  Future<UserStateResponse?>? futureUser;
   bool error = false;
 
   @override
@@ -129,7 +128,7 @@ class _RegisterState extends State<Register> {
                 height: 18.0,
               ),
               FutureBuilder(
-                future: futureToken,
+                future: futureUser,
                 builder: (context, AsyncSnapshot<UserStateResponse?> snapshot) {
                   if (snapshot.connectionState == ConnectionState.none) { // If the API request has not been made yet
                     return Row(
@@ -163,8 +162,8 @@ class _RegisterState extends State<Register> {
                       widget.settings.setString("username", snapshot.data!.username); // Save the username
                       widget.settings.setString("email", snapshot.data!.email);       // Save the email
                       widget.settings.setString("id", snapshot.data!.id);             // Save the id
-                      widget.settings.setString("class", snapshot.data!.clas.id);     // Save the class
-                      widget.settings.setString("role", snapshot.data!.role.name);    // Save the role
+                      //widget.settings.setString("class", snapshot.data!.clas.id);     // Save the class
+                      widget.settings.setString("role", snapshot.data!.role);    // Save the role
 
                       Future.microtask(() => Navigator.pushReplacementNamed(context, "/")); // Go to the main page
                     } else { // If the token is invalid

@@ -1,7 +1,7 @@
-import 'package:TheQuoter/models/responses.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'api.dart';
+
+import '/models/responses.dart';
 import 'main.dart';
 
 class Login extends StatefulWidget {
@@ -119,8 +119,8 @@ class _LoginState extends State<Login> {
                               widget.settings.setString("username", snapshot.data!.username); // Save the username
                               widget.settings.setString("email", snapshot.data!.email);       // Save the email
                               widget.settings.setString("id", snapshot.data!.id);             // Save the id
-                              widget.settings.setString("class", snapshot.data!.clas.id);     // Save the class
-                              widget.settings.setString("role", snapshot.data!.role.name);    // Save the role
+                              //widget.settings.setString("class", snapshot.data!.clas.id);     // Save the class
+                              widget.settings.setString("role", snapshot.data!.role);    // Save the role
 
                               Future.microtask(() => Navigator.pushReplacementNamed( context, "/")); // Go to the main page
                             } else { // If the token is invalid

@@ -178,8 +178,8 @@ class QuoteBlock extends StatelessWidget {
               quote.context!
             ),
           ),
-          Hero(
-            tag: quote.id,
+          /* Hero(
+            tag: quote.id, */ Container( // TODO: Fix HERO
             child: Card(
               shape: const RoundedRectangleBorder(borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(10.0),

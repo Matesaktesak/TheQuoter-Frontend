@@ -1,22 +1,22 @@
 // Created quote object
 import 'class.dart';
 
-class QuoteResponse{
+class QuoteActionResponse{
   final String? id;
   final int statusCode;
 
-  QuoteResponse(this.id, this.statusCode);
+  QuoteActionResponse(this.id, this.statusCode);
 }
 
-class LoginResponse{
+class UserStateResponse{
   final String token;
-  final UserRole role;
+  final String role; // TODO: Change to UserRole
   final String id;
   final String email;
   final String username;
-  final Class clas;
+  //final Class clas; // TODO: Implement
 
-  LoginResponse({required this.token, required this.role, required this.id, required this.email, required this.username, required this.clas});
+  UserStateResponse({required this.token, required this.role, required this.id, required this.email, required this.username, /* required this.clas */});
 }
 
 enum UserRole{

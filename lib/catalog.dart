@@ -4,12 +4,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:hlaskomat/quote_delete_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'main.dart';
 import 'quote_create.dart';
 import 'quote_display.dart';
+import 'quote_delete_dialog.dart';
 import 'models/quote.dart';
 import 'models/person.dart';
 
@@ -109,8 +109,8 @@ class _CatalogState extends State<Catalog> {
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Hero(
-                    tag: filteredQuotes[index].id,
+                  child: /* Hero(
+                    tag: filteredQuotes[index].id, */ Container( // TODO: fix HERO
                     child: Card(
                       shape: const RoundedRectangleBorder(
                         borderRadius: BorderRadius.only(

@@ -30,12 +30,12 @@ class MainMenu extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      Text(settings.getString("username")!,
+                      Text(settings.getString("username") ?? "no user",
                         style: Theme.of(context).textTheme.headline5
                       ),
-                      Text(settings.getString("email")!),
+                      Text(settings.getString("email") ?? "no email"),
                       const SizedBox(height: 8.0,),
-                      Text(settings.getString("role")!)
+                      Text(settings.getString("role") ?? "no role")
                     ],
                   ),
                 ),
