@@ -201,10 +201,12 @@ class QuoteBlock extends StatelessWidget {
     Key? key,
     required this.quote,
     required TextStyle quoteTextTheme,
+    this.hero = true
   }) : _quoteTextTheme = quoteTextTheme, super(key: key);
 
   final Quote quote;
   final TextStyle _quoteTextTheme;
+  final bool hero;
 
   @override
   Widget build(BuildContext context) {
@@ -233,7 +235,7 @@ class QuoteBlock extends StatelessWidget {
             ),
           ),
           Hero(
-            tag: quote.id,
+            tag: hero ? quote.id : "No hero",
             child: Card(
               shape: const RoundedRectangleBorder(borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(10.0),
@@ -323,7 +325,7 @@ class StandaloneQuoteBlock extends StatelessWidget{
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 25.0),
                   child:
-                  QuoteBlock(quote: quote, quoteTextTheme: quoteTextTheme,),
+                  QuoteBlock(quote: quote, quoteTextTheme: quoteTextTheme, hero: false,),
                 ),
               ),
               QrImage(
